@@ -3,6 +3,7 @@ package parseJSON;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.io.IOException;
 
 import javax.json.Json;
 import javax.json.JsonArray;
@@ -12,15 +13,16 @@ import javax.json.JsonReader;
 
 public class ParserJson {
 	
-    public ArrayList<Employee> parseJSON(String file_path)  {	
+    public ArrayList<Employee> parseJSON(String filePath) throws IOException  {
 		ArrayList<Employee> list = new ArrayList<>();
 	    try {
-	    	InputStream fileInputStream = new FileInputStream(file_path);
+	    	InputStream fileInputStream = new FileInputStream(filePath);
 	    	
 	    	JsonReader reader = Json.createReader(fileInputStream);
 	    	JsonObject employeesObject = reader.readObject();
 	
 	        reader.close();
+			fileInputStream.close();
 	        
 	        JsonArray employees = employeesObject.getJsonArray("employees");
 	        
