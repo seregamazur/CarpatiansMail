@@ -22,7 +22,7 @@ public class ParserJson {
 	    	JsonObject employeesObject = reader.readObject();
 	
 	        reader.close();
-			fileInputStream.close();
+		    fileInputStream.close();
 	        
 	        JsonArray employees = employeesObject.getJsonArray("employees");
 	        
