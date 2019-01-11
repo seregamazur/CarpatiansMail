@@ -15,14 +15,15 @@ public class ParserJson {
 	
     public ArrayList<Employee> parseJSON(String filePath) throws IOException  {
 		ArrayList<Employee> list = new ArrayList<>();
-	    try {
-	    	InputStream fileInputStream = new FileInputStream(filePath);
+		
+		InputStream fileInputStream = null;
+    	JsonReader reader = null;
+	    
+    	try {
+	    	fileInputStream = new FileInputStream(filePath);
 	    	
-	    	JsonReader reader = Json.createReader(fileInputStream);
+	    	reader = Json.createReader(fileInputStream);
 	    	JsonObject employeesObject = reader.readObject();
-	
-	        reader.close();
-		    fileInputStream.close();
 	        
 	        JsonArray employees = employeesObject.getJsonArray("employees");
 	        
@@ -40,9 +41,11 @@ public class ParserJson {
 	        });
 	         
 	
-		} catch(Exception e) {
-			System.out.println(e);
-		}
+		} 
+	      fanally {
+	    	  reader.close();
+			  fileInputStream.close();
+		  }
 	    
 		return list;
 	}	
