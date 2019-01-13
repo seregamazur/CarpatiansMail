@@ -86,33 +86,33 @@ public class Letter{
 	}
 	
 	private void sentToBoss() {
-		
+		// TODO send back to boss
 		sendTime = LocalDateTime.now();
 	}
 	
 	private void sentToAllFromCurrentLevel() {
 		for(int i = 0; i < employees.size(); i++) {
 			if(employees.get(i).getLevel() == currentLevel) {
-				
+				// TODO send to employees.get(i)
 				sendTime = LocalDateTime.now();
 			}
 		}
 	}
 
 	private void sentBackToSender() {
-		
+		// TODO send back to sender
 	}
 	
 	private void sent() {
 		switch(currentGeneralLetterState) {
 			case UNDEFINED:
-				// sent current level
+				sentToAllFromCurrentLevel();
 				break;
 			case ACCEPTED:
-				// sent to boss
+				sentToBoss();
 				break;
 			case REJECTED:
-				// back to sender
+				sentBackToSender();
 				break;
 		}
 	}
