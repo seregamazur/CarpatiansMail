@@ -17,7 +17,8 @@ import java.util.UUID;
 
 public class Letter{
 	final BaseGmailClient client = getClient().auth();
-	private ExceptionsLogger logger = new ExceptionsLogger("C:/serverExcetions.log");
+	private ExceptionsLogger logger = new ExceptionsLogger("D:/serverExcetions.log");
+	
 	
 	private Timer timer;
 	private TimerTask deadlineCheckTask;
