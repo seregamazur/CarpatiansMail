@@ -24,7 +24,15 @@ public class ExceptionsLogger {
 			pw = new PrintWriter(new FileOutputStream(logFile, true));
 			
 			pw.print("\r\n\r\n\r\n-----------------------" + dtf.format(now) + "-----------------\r\n\r\n");
-			exception.printStackTrace(pw);
+
+			for(StackTraceElement ste : exception.getStackTrace()) {
+				pw.println(ste);
+			}
+			Throwable cause = exception.getCause();
+			  if (cause != null) {
+				pw.println("Caused by: ");
+			    cause.printStackTrace(pw);
+			  }
 			pw.print("\r\n\r\n-----------------------------------------------------------\r\n\r\n\r\n");
 			
 		} catch (Exception e) {}
