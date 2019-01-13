@@ -1,9 +1,16 @@
 package letterLogic;
 
+import client.authenticator.EmailAuthenticator;
+import client.core.BaseGmailClient;
+import client.core.GmailClient;
+import client.core.common.SendedMessage;
+import employee.Employee;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 
 public class Letter{
+	final BaseGmailClient client = getClient().auth();
 	private ArrayList<Employee> employees;
 	private String content;
 	private String senderEmail;
@@ -90,21 +97,21 @@ public class Letter{
 	}
 	
 	private void sentToBoss() {
-		// TODO send back to boss (using 'bossEmail' variable)
+		client.send(messageToBoss());
 		sendTime = LocalDateTime.now();
 	}
 	
 	private void sentToAllFromCurrentLevel() {
 		for(int i = 0; i < employees.size(); i++) {
 			if(employees.get(i).getLevel() == currentLevel) {
-				// TODO send to employees.get(i)
+				client.send(messageToAll());
 				sendTime = LocalDateTime.now();
 			}
 		}
 	}
 
 	private void sentBackToSender() {
-		// TODO send back to sender (using 'senderEmail' variable)
+		client.send(messageToSender());
 	}
 	
 	private void sent() {
@@ -120,7 +127,31 @@ public class Letter{
 				break;
 		}
 	}
-}
+	private GmailClient getClient() {
+		return GmailClient.get()
+				.loginWith(EmailAuthenticator.Gmail.auth("serhiy.mazur1@gmail.com", "****"))
+				.beforeLogin(() -> System.out.println("Process login..."))
+				.onLoginError(e -> e.printStackTrace())
+				.onLoginSuccess(() -> System.out.println("Login successfully"));
+	}
+	private SendedMessage messageToBoss() {
+		return new SendedMessage("Hey", "Boss")
+				.from("Server")
+				.to("boss@gmail.com");
+	}
+
+	private SendedMessage messageToAll() {
+		return new SendedMessage("Hey", "Employee")
+				.from("Server")
+				.to("employee@gmail.com").to("another.employee@gmail.com");
+	}
+
+	private SendedMessage messageToSender() {
+		return new SendedMessage("Hey", "Bad news")
+				.from("Server")
+				.to("komys'@gmail.com");
+	}}
+
  
 
 enum LetterState{

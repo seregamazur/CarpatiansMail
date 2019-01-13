@@ -1,4 +1,4 @@
-package xlsParser;
+package parser;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 
+import employee.Employee;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.Workbook;
