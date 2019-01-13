@@ -6,14 +6,18 @@ import java.util.ArrayList;
 public class Letter{
 	private ArrayList<Employee> employees;
 	private String content;
+	private String senderEmail;
+	private String bossEmail;
 	private int currentLevel;
 	private int[] letterState;
 	private LetterState currentGeneralLetterState = LetterState.UNDEFINED;
 	private LocalDateTime sendTime;
 	
 	
-	public Letter(ArrayList<Employee> employees, String content) {
+	public Letter(ArrayList<Employee> employees, String senderEmail, String bossEmail, String content) {
 		this.employees = employees;
+		this.senderEmail = senderEmail;
+		this.bossEmail = bossEmail;
 		this.content = content;
 		this.currentLevel = getMaxLevel();
 		this.letterState = new int[employees.size()];
@@ -86,7 +90,7 @@ public class Letter{
 	}
 	
 	private void sentToBoss() {
-		// TODO send back to boss
+		// TODO send back to boss (using 'bossEmail' variable)
 		sendTime = LocalDateTime.now();
 	}
 	
@@ -100,7 +104,7 @@ public class Letter{
 	}
 
 	private void sentBackToSender() {
-		// TODO send back to sender
+		// TODO send back to sender (using 'senderEmail' variable)
 	}
 	
 	private void sent() {
