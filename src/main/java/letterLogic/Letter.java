@@ -68,6 +68,10 @@ public class Letter{
 		sentBackToSender(isAccepted);
 	}
 	
+	public String getLetterID() {
+		return letterID;
+	}
+	
 	private int getMaxLevel() {
 		int maxLevel = 0;
 		for(Employee e : employees) {
