@@ -29,22 +29,21 @@ public class ParserJson {
 	        
 	        JsonArray employees = employeesObject.getJsonArray("employees");
 	        
-	        employees.forEach(jsonValue -> {
+	          employees.forEach(jsonValue -> {
 	        	JsonObject value = (JsonObject)jsonValue;
 	        	
 	        	list.add(
 	    			new Employee(
-						value.getString("name"), 
-						value.getString("position"), 
-						value.getString("eMail"), 
+						value.get("name").toString().substring(1, value.get("name").toString().length()-1), 
+						value.get("position").toString().substring(1, value.get("position").toString().length()-1), 
+						value.get("eMail").toString().substring(1, value.get("eMail").toString().length()-1), 
 						value.getInt("level")
 					)
 				);
 	        });
-	         
 	
 		} 
-	      finally {
+	    finally {
 	    	  if(reader != null) {
 	    		  reader.close();
 	    	  }

@@ -31,20 +31,6 @@ public class Controller {
 	
 	private void runServer() {
 		employees =  initializeEmployeesCollection();
-	/*	
-		employees.add(new Employee("Ігор Полатайко", "developer", "igor.bogdanovich39@gmail.com", 0));
-		employees.add(new Employee("Олег MADCAT", "developer", "igor.bogdanovich39@gmail.com", 1));
-		employees.add(new Employee("Назар Щербій", "developer", "igor.bogdanovich39@gmail.com", 1));
-	*/	
-		try {
-			ArrayList<Employee> empl = parser.parseXls("C:\\Users\\Ігор\\Desktop\\employees.xlsx", employees);
-			for(Employee e : empl) {
-				System.out.println(e.getName());
-			}
-		} catch (Exception e) {
-			logger.log(e);
-		}
-		
 		
 		updateTimer = new Timer();
 		getNewLettersTask = new TimerTask() {
@@ -58,7 +44,7 @@ public class Controller {
 			}
 		};
 		
-		updateTimer.scheduleAtFixedRate(getNewLettersTask, timerUpdatePeriod, timerUpdatePeriod);
+		updateTimer.scheduleAtFixedRate(getNewLettersTask, 0, timerUpdatePeriod);
 	}
 	
 	private ArrayList<Employee> initializeEmployeesCollection() {
