@@ -30,11 +30,25 @@ public class Letter{
 		return maxLevel;
 	}
 	
-	public void setAnswer(boolean isAccepted, int index) {
+	public void setAnswer(boolean isAccepted, String eMail) {
+		int index = getIndex(eMail);
+		if(index == -1) {
+			throw new IllegalArgumentException();
+		}
 		letterState[index] = (isAccepted) ? 1 : -1; 
 		if(checkLevelAnswers()) {
 			LevelUp();
 		}
+	}
+	
+	private int getIndex(String eMail) {
+		int index = -1;
+		for(int i = 0; i < employees.size(); i++) {
+			if(employees.get(i).getEmail().equals(eMail.trim())) {
+				index = i;
+			}
+		}
+		return index;
 	}
 	
 	private boolean checkFullLevel() {
