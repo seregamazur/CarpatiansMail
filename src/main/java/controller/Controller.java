@@ -11,12 +11,12 @@ import parser.Parser;
 import parser.ParserJson;
 
 public class Controller {
-	Timer updateTimer;
-	TimerTask getNewLettersTask;
+	private Timer updateTimer;
+	private TimerTask getNewLettersTask;
 	private Parser parser = new Parser();
-	ArrayList<Letter> letters = new ArrayList<>();
-	ArrayList<Employee> employees;
- 	ExceptionsLogger logger = new ExceptionsLogger("D:/serverExceptions.log");
+	private ArrayList<Letter> letters = new ArrayList<>();
+	private ArrayList<Employee> employees;
+	private ExceptionsLogger logger = new ExceptionsLogger("D:/serverExceptions.log");
 	int timerUpdatePeriod = 10 * 60 * 1000;
  	
  	
