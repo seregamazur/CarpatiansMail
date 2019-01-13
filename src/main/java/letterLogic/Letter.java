@@ -135,21 +135,21 @@ public class Letter{
 				.onLoginSuccess(() -> System.out.println("Login successfully"));
 	}
 	private SendedMessage messageToBoss() {
-		return new SendedMessage("Hey", "Boss")
+		return new SendedMessage("Hey", content)
 				.from("Server")
-				.to("boss@gmail.com");
+				.to(bossEmail);
 	}
 
 	private SendedMessage messageToAll() {
-		return new SendedMessage("Hey", "Employee")
+		return new SendedMessage("Hey", content)
 				.from("Server")
 				.to("employee@gmail.com").to("another.employee@gmail.com");
 	}
 
 	private SendedMessage messageToSender() {
-		return new SendedMessage("Hey", "Bad news")
+		return new SendedMessage("Hey", content)
 				.from("Server")
-				.to("komys'@gmail.com");
+				.to(senderEmail);
 	}}
 
  
