@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.UUID;
 
 
 
@@ -28,8 +29,11 @@ public class Letter{
 	private String bossEmail;
 	private int currentLevel;
 	private int[] letterState;
+	
 	private LetterState currentGeneralLetterState = LetterState.UNDEFINED;
 	private LocalDateTime[] sendTime;
+	
+	private String letterID;
 	
 	
 	public Letter(ArrayList<Employee> employees, String senderEmail, String bossEmail, String content) {
@@ -42,6 +46,26 @@ public class Letter{
 		this.sendTime = new LocalDateTime[employees.size()];
 		sent();
 		createDeadlineTask();
+		letterID = UUID.randomUUID().toString();
+	}
+
+	public void setAnswer(boolean isAccepted, String eMail) {
+		int index = getIndex(eMail);
+		if(index == -1) {
+			throw new IllegalArgumentException();
+		}
+		letterState[index] = (isAccepted) ? 1 : -1; 
+		if(checkLevelAnswers()) {
+			LevelUp();
+		}
+	}
+	
+	public void basAttachmentFormat(String eMail) {
+		sentErrorMessage();
+	}
+	
+	public void handleBossAnswer(boolean isAccepted) {
+		sentBackToSender(isAccepted);
 	}
 	
 	private int getMaxLevel() {
@@ -54,16 +78,6 @@ public class Letter{
 		return maxLevel;
 	}
 	
-	public void setAnswer(boolean isAccepted, String eMail) {
-		int index = getIndex(eMail);
-		if(index == -1) {
-			throw new IllegalArgumentException();
-		}
-		letterState[index] = (isAccepted) ? 1 : -1; 
-		if(checkLevelAnswers()) {
-			LevelUp();
-		}
-	}
 	
 	private int getIndex(String eMail) {
 		int index = -1;
@@ -122,8 +136,8 @@ public class Letter{
 		}
 	}
 
-	private void sentBackToSender() {
-		client.send(messageToSender());
+	private void sentBackToSender(boolean isAccepted) {
+		client.send(messageToSender(isAccepted));
 	}
 	
 	private boolean breakAnswerDeadline(int index) {
@@ -160,7 +174,7 @@ public class Letter{
 				sentToBoss();
 				break;
 			case REJECTED:
-				sentBackToSender();
+				sentBackToSender(false);
 				break;
 		}
 	}
@@ -178,15 +192,25 @@ public class Letter{
 	}
 
 	private SendedMessage messageTo(String eMail) {
-		return new SendedMessage("Hey", content)
+		return new SendedMessage("Hey", letterID +" - скопіюйте це і вставте першим словом у відповіді \r\n"
+										+ content)
 				.from("Server")
 				.to(eMail.trim());
 	}
 
-	private SendedMessage messageToSender() {
-		return new SendedMessage("Hey", content)
+	private SendedMessage messageToSender(boolean isAccepted) {
+		return new SendedMessage("Hey", (isAccepted) ? "Погоджено" : "Відмовлено" +
+														" \r\n "+ content)
 				.from("Server")
 				.to(senderEmail);
+	}
+	
+	private SendedMessage sentErrorMessage() {
+		return new SendedMessage("Помилка в Excel таблиці",
+				"Зірочкою (*) було відмічено одне або більше полів з іменами людей"
+			  + " відомостей про яких немає в базі даних")
+			.from("Server")
+			.to(senderEmail);
 	}}
 
  

@@ -29,8 +29,10 @@ public class ExceptionsLogger {
 			
 		} catch (Exception e) {}
 		finally {
-			pw.flush();
-			pw.close();
+			if(pw != null) {
+				pw.flush();
+				pw.close();
+			}
 		}
 	}
 }

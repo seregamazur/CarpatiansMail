@@ -45,8 +45,12 @@ public class ParserJson {
 	
 		} 
 	      finally {
-	    	  reader.close();
-			  fileInputStream.close();
+	    	  if(reader != null) {
+	    		  reader.close();
+	    	  }
+	    	  if(fileInputStream != null) {
+	    		  fileInputStream.close();
+	    	  }
 		  }
 	    
 		return list;
