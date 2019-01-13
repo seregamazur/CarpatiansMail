@@ -63,13 +63,16 @@ public class Letter{
 	
 	public void basAttachmentFormat(String eMail) {
 		sentErrorMessage("Помилка в Excel таблиці. Зірочкою (*) було відмічено одне або більше полів з іменами людей"
-						  + " відомостей про яких немає в базі даних");
+						  + " відомостей про яких немає в базі даних \r\n");
 	}
 	
 	public void sentBadIDError(String eMail) {
-		sentErrorMessage("Перевірти правильність введеного в листі ID \r\n");
+		sentErrorMessage("Перевірте правильність введеного в листі ID \r\n");
 	}
-
+	
+	public void sentBadLetterTypeError(String eMail) {
+		sentErrorMessage("Лист не відповідає вимогам, неможливо визначити його тип ID \r\n");
+	}
 	
 	public void handleBossAnswer(boolean isAccepted) {
 		sentBackToSender(isAccepted);

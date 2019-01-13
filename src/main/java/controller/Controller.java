@@ -7,6 +7,8 @@ import java.util.TimerTask;
 import employee.Employee;
 import exceptionsLogger.ExceptionsLogger;
 import letterLogic.Letter;
+import letterLogic.LetterType;
+import parser.LetterTypeChecker;
 import parser.Parser;
 import parser.ParserJson;
 
@@ -17,7 +19,8 @@ public class Controller {
 	private ArrayList<Letter> letters = new ArrayList<>();
 	private ArrayList<Employee> employees;
 	private ExceptionsLogger logger = new ExceptionsLogger("D:/serverExceptions.log");
-	int timerUpdatePeriod = 10 * 60 * 1000;
+	private int timerUpdatePeriod = 10 * 60 * 1000;
+	private LetterTypeChecker letterTypeChecker = new LetterTypeChecker();
  	
  	
 	public static void main(String[] args) {
@@ -35,12 +38,18 @@ public class Controller {
 		updateTimer = new Timer();
 		getNewLettersTask = new TimerTask() {
 			public void run() {
-				// get new letters method()
+				// TODO get new letters method()
 				 
-				// ** answer or request
-				// **** parse xls create Letter objects and add it to letters
-				// **** or setAnswer to letter which id that same that in letter
-				
+				if(letterTypeChecker.IsRequest(content, isAttachment) == LetterType.ANSWER) {
+					// **** or setAnswer to letter which id that same that in letter
+					
+				}
+				else if(letterTypeChecker.IsRequest(content, isAttachment) == LetterType.REQUEST) {
+					// **** parse xls create Letter objects and add it to letters
+				}
+				else {
+					sentBadLetterTypeError(senderEmail);
+				}
 			}
 		};
 		
