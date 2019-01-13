@@ -5,12 +5,23 @@ import client.core.BaseGmailClient;
 import client.core.GmailClient;
 import client.core.common.SendedMessage;
 import employee.Employee;
+import exceptionsLogger.ExceptionsLogger;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Timer;
+import java.util.TimerTask;
+
+
 
 public class Letter{
 	final BaseGmailClient client = getClient().auth();
+	private ExceptionsLogger logger = new ExceptionsLogger("C:/serverExcetions.log");
+	
+	private Timer timer;
+	private TimerTask deadlineCheckTask;
+	private final int deadlineCheckTaskPeriod = 1 * 24 * 3600 * 1000;
+	
 	private ArrayList<Employee> employees;
 	private String content;
 	private String senderEmail;
@@ -18,7 +29,7 @@ public class Letter{
 	private int currentLevel;
 	private int[] letterState;
 	private LetterState currentGeneralLetterState = LetterState.UNDEFINED;
-	private LocalDateTime sendTime;
+	private LocalDateTime[] sendTime;
 	
 	
 	public Letter(ArrayList<Employee> employees, String senderEmail, String bossEmail, String content) {
@@ -28,7 +39,9 @@ public class Letter{
 		this.content = content;
 		this.currentLevel = getMaxLevel();
 		this.letterState = new int[employees.size()];
+		this.sendTime = new LocalDateTime[employees.size()];
 		sent();
+		createDeadlineTask();
 	}
 	
 	private int getMaxLevel() {
@@ -98,14 +111,13 @@ public class Letter{
 	
 	private void sentToBoss() {
 		client.send(messageToBoss());
-		sendTime = LocalDateTime.now();
 	}
 	
 	private void sentToAllFromCurrentLevel() {
 		for(int i = 0; i < employees.size(); i++) {
 			if(employees.get(i).getLevel() == currentLevel) {
-				client.send(messageToAll());
-				sendTime = LocalDateTime.now();
+				client.send(messageTo(employees.get(i).getEmail()));
+				sendTime[i] = LocalDateTime.now();
 			}
 		}
 	}
@@ -114,6 +126,31 @@ public class Letter{
 		client.send(messageToSender());
 	}
 	
+	private boolean breakAnswerDeadline(int index) {
+		if(sendTime[index].plusDays(14).isAfter(LocalDateTime.now())) {
+			return true;
+		}
+		return false;
+	}
+	
+	private void deadlineControl() {
+		for(int i = 0; i < employees.size(); i++) {
+			if(breakAnswerDeadline(i)) {
+				client.send(messageTo(employees.get(i).getEmail()));
+			}
+		}
+	}
+	
+	private void createDeadlineTask()
+	{
+		timer = new Timer();
+		deadlineCheckTask = new TimerTask() {
+			public void run() {
+				deadlineControl();
+			}
+		};
+		timer.scheduleAtFixedRate(deadlineCheckTask, deadlineCheckTaskPeriod, deadlineCheckTaskPeriod);
+	}
 	private void sent() {
 		switch(currentGeneralLetterState) {
 			case UNDEFINED:
@@ -130,9 +167,9 @@ public class Letter{
 	private GmailClient getClient() {
 		return GmailClient.get()
 				.loginWith(EmailAuthenticator.Gmail.auth("serhiy.mazur1@gmail.com", "****"))
-				.beforeLogin(() -> System.out.println("Process login..."))
-				.onLoginError(e -> e.printStackTrace())
-				.onLoginSuccess(() -> System.out.println("Login successfully"));
+				.beforeLogin(() -> {})
+				.onLoginError(e -> logger.log(e))
+				.onLoginSuccess(() -> {});
 	}
 	private SendedMessage messageToBoss() {
 		return new SendedMessage("Hey", content)
@@ -140,10 +177,10 @@ public class Letter{
 				.to(bossEmail);
 	}
 
-	private SendedMessage messageToAll() {
+	private SendedMessage messageTo(String eMail) {
 		return new SendedMessage("Hey", content)
 				.from("Server")
-				.to("employee@gmail.com").to("another.employee@gmail.com");
+				.to(eMail.trim());
 	}
 
 	private SendedMessage messageToSender() {
