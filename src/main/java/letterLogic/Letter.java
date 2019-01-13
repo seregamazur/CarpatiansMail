@@ -61,8 +61,14 @@ public class Letter{
 	}
 	
 	public void basAttachmentFormat(String eMail) {
-		sentErrorMessage();
+		sentErrorMessage("Помилка в Excel таблиці. Зірочкою (*) було відмічено одне або більше полів з іменами людей"
+						  + " відомостей про яких немає в базі даних");
 	}
+	
+	public void sentBadIDError(String eMail) {
+		sentErrorMessage("Перевірти правильність введеного в листі ID \r\n");
+	}
+
 	
 	public void handleBossAnswer(boolean isAccepted) {
 		sentBackToSender(isAccepted);
@@ -209,13 +215,14 @@ public class Letter{
 				.to(senderEmail);
 	}
 	
-	private SendedMessage sentErrorMessage() {
-		return new SendedMessage("Помилка в Excel таблиці",
-				"Зірочкою (*) було відмічено одне або більше полів з іменами людей"
-			  + " відомостей про яких немає в базі даних")
+	private SendedMessage sentErrorMessage(String errMessage) {
+		return new SendedMessage("Лист відповідь на запит " + senderEmail
+							+ " не було відправлено" , errMessage)
 			.from("Server")
 			.to(senderEmail);
-	}}
+	}
+	
+}
 
  
 
