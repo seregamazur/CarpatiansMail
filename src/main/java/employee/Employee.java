@@ -7,7 +7,7 @@ public class Employee {
 		private int level;
 		
 		
-		Employee(String name, String position, String eMail, int level){
+		public Employee(String name, String position, String eMail, int level){
 			this.name = name;
 			this.position = position;
 			this.eMail = eMail;
