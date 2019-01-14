@@ -30,7 +30,6 @@ public class Controller {
 
     public static void main(String[] args) {
 
-
         Controller controller = new Controller();
         try {
         	controller.runServer();
@@ -57,18 +56,25 @@ public class Controller {
             @Override
             public void onUpdate(ReceivedMessage message) {
                 System.out.println("New message: " + message.getMessage() + " => " + message.getDate()); 
-                if (letterTypeChecker.IsRequest(message.getMessage(),
+                if (letterTypeChecker.IsRequest(message.getSubject(),
                         message.getAttachment() != null) == LetterType.ANSWER) {
                     
                 	try {
-                		
+                		if(letterTypeChecker.isAnswerPositive(message.getMessage())) {
+                			letterTypeChecker.getLetterById(letterTypeChecker.getLetterID(message.getMessage()),
+                											letters).setAnswer(true, message.getFrom());
+                		}
+                		else {
+                			letterTypeChecker.getLetterById(letterTypeChecker.getLetterID(message.getMessage()),
+									letters).setAnswer(false, message.getFrom());
+                		}
                 	}
                 	catch(IllegalArgumentException ise) {
                 		new Letter(message.getFrom()).sentBadLetterTypeError();
                 	}
 
-                } else if (letterTypeChecker.IsRequest(message.getMessage(),
-                        message.getAttachment()!=null) == LetterType.REQUEST) {
+                } else if (letterTypeChecker.IsRequest(message.getSubject(),
+                        message.getAttachment()!= null) == LetterType.REQUEST) {
                     try {
 						letters.add(new Letter(
 								parser.parseXls(message.getAttachment()[0], employees),
@@ -91,8 +97,6 @@ public class Controller {
                 logger.log(e);
             }
         });
-
-
     }
 
 

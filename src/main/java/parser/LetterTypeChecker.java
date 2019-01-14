@@ -28,17 +28,19 @@ public class LetterTypeChecker {
 		throw new IllegalArgumentException();
 	}
 	
-	public LetterType IsRequest(String content, boolean isAttachment) {
-		String [] arr = content.trim().split(" ");
-		
-        if(arr.length == 2 && !isAttachment) {
-        		return LetterType.ANSWER;	
-        }
-        else if(arr.length >= 3 && isAttachment) {
-        	return LetterType.REQUEST;
-        }
-        else {
-        	   return LetterType.UNDEFINED;
-        }
+	public String getLetterID(String content) {
+		return content.trim().split(" ")[0];
+	}
+	
+	public LetterType IsRequest(String subject, boolean isAttachment) {
+		if(subject.trim().equals("Запит") && isAttachment) {
+			return LetterType.REQUEST;
+		}
+		else if(subject.trim().equals("Відповідь") && !isAttachment) {
+			return LetterType.ANSWER;
+		}
+		else {
+			return LetterType.UNDEFINED;
+		}
 	}	
 }

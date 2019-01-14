@@ -45,9 +45,9 @@ public class Letter{
 		this.currentLevel = getMaxLevel();
 		this.letterState = new int[employees.size()];
 		this.sendTime = new LocalDateTime[employees.size()];
+		letterID = UUID.randomUUID().toString();
 		sent();
 		createDeadlineTask();
-		letterID = UUID.randomUUID().toString();
 	}
 	
 	public Letter(String senderEmail) {
@@ -66,16 +66,19 @@ public class Letter{
 	}
 	
 	public void basAttachmentFormat() {
-		sentErrorMessage("Помилка в Excel таблиці. Зірочкою (*) було відмічено одне або більше полів з іменами людей"
-						  + " відомостей про яких немає в базі даних \r\n");
+		client.send(sentErrorMessage("Помилка в Excel таблиці. Зірочкою (*) було відмічено одне або більше полів з іменами людей"
+						  + " відомостей про яких немає в базі даних \r\n"));
 	}
 	
 	public void sentBadIDError() {
-		sentErrorMessage("Перевірте правильність введеного в листі ID \r\n");
+		client.send(sentErrorMessage("Перевірте правильність введеного в листі ID \r\n"));
 	}
 	
 	public void sentBadLetterTypeError() {
-		sentErrorMessage("Лист не відповідає вимогам, неможливо визначити його тип ID \r\n");
+		client.send(sentErrorMessage("Лист не відповідає вимогам, неможливо визначити його тип\r\n"
+							       + "Темою листа повенне бути одне з наспутних слів: Запит, Відповідь.\r\n"
+							       + "Лист-запит повинен мати Excel таблицю.\r\nЛист-відповідь не повинен "
+							       + "містити прикріплень"));
 	}
 	
 	public void handleBossAnswer(boolean isAccepted) {
@@ -128,17 +131,27 @@ public class Letter{
 	}
 	
 	private void LevelUp() {
-		if(checkFullLevel()) {
-			if(currentLevel > 0) {
-				currentLevel--;
+		if(checkIfCurrentLevelNotEmpty() && currentLevel > 0) {
+			if(checkFullLevel()) {
+				if(currentLevel > 0) {
+					currentLevel--;
+				}
+				else {
+					currentGeneralLetterState = LetterState.ACCEPTED;
+				}
 			}
 			else {
-				currentGeneralLetterState = LetterState.ACCEPTED;
+				currentGeneralLetterState = LetterState.REJECTED;
 			}
 		}
 		else {
-			currentGeneralLetterState = LetterState.REJECTED;
+			currentLevel--;
 		}
+		sent();
+	}
+	
+	private boolean checkIfCurrentLevelNotEmpty() {
+		return employees.size() != 0;
 	}
 	
 	private void sentToBoss() {
