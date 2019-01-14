@@ -12,26 +12,32 @@ import parser.LetterTypeChecker;
 import parser.Parser;
 import parser.ParserJson;
 
-import javax.mail.MessagingException;
 import java.util.ArrayList;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import javax.mail.MessagingException;
 
 public class Controller {
 
     private Parser parser = new Parser();
     private ArrayList<Letter> letters = new ArrayList<>();
     private ArrayList<Employee> employees;
-    private ExceptionsLogger logger = new ExceptionsLogger("D:/serverExceptions.log");
+    private static ExceptionsLogger logger = new ExceptionsLogger("D:/serverExceptions.log");
     private LetterTypeChecker letterTypeChecker = new LetterTypeChecker();
-
+    
+    private static String bossEmail = "igor.bogdanovich39@gmail.com"; // like a boss
 
     public static void main(String[] args) {
 
 
         Controller controller = new Controller();
-        controller.runServer();
-
+        try {
+        	controller.runServer();
+        }
+        catch(Exception e) {
+       	 	logger.log(e);
+        }
     }
 
 
@@ -45,21 +51,39 @@ public class Controller {
                         .map(m ->  " => " + m.getDate())
                         .collect(Collectors.joining("\n"))
                 );
+                 
             }
 
             @Override
             public void onUpdate(ReceivedMessage message) {
-                System.out.println("New message: " + message.getMessage() + " => " + message.getDate());
+                System.out.println("New message: " + message.getMessage() + " => " + message.getDate()); 
                 if (letterTypeChecker.IsRequest(message.getMessage(),
-                        message.getAttachment()==null) == LetterType.ANSWER) {
-                    // **** or setAnswer to letter which id that same that in letter
+                        message.getAttachment() != null) == LetterType.ANSWER) {
+                    
+                	try {
+                		
+                	}
+                	catch(IllegalArgumentException ise) {
+                		new Letter(message.getFrom()).sentBadLetterTypeError();
+                	}
 
                 } else if (letterTypeChecker.IsRequest(message.getMessage(),
                         message.getAttachment()!=null) == LetterType.REQUEST) {
-                    // **** parse xls create Letter objects and add it to letters
+                    try {
+						letters.add(new Letter(
+								parser.parseXls(message.getAttachment()[0], employees),
+								message.getFrom(),
+								bossEmail,
+								message.getMessage()
+								));
+					} catch (Exception e) {
+						logger.log(e);
+					}
                 } else {
-                    sentBadLetterTypeError(message.getFrom());
+                  new Letter(message.getFrom()).sentBadLetterTypeError();
                 }
+             
+        
             }
 
             @Override
@@ -76,7 +100,7 @@ public class Controller {
 
         ArrayList<Employee> employees = null;
         try {
-            employees = new ParserJson().parseJSON("C:\\Users\\����\\Desktop\\employees.json");
+            employees = new ParserJson().parseJSON("D:\\employees.json");
         } catch (Exception e) {
             logger.log(e);
         }
@@ -85,7 +109,7 @@ public class Controller {
 
     public GmailClient client() {
         GmailClient client = GmailClient.get()
-                .loginWith(Gmail.auth("", ""))
+                .loginWith(Gmail.auth("vokarpaty.server.mail@gmail.com", "vokarpatyIPZ"))
                 .beforeLogin(() -> System.out.println("Login..."))
                 .onLoginError(e -> logger.log(e))
                 .onLoginSuccess(() -> System.out.println("Success login!"));

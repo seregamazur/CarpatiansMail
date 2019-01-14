@@ -16,13 +16,13 @@ import org.apache.poi.ss.usermodel.WorkbookFactory;
 
 public class Parser {
 
-	public ArrayList<Employee> parseXls(String filePath, ArrayList<Employee> fullEmployeesCollection) throws IOException{
+	public ArrayList<Employee> parseXls(File file, ArrayList<Employee> fullEmployeesCollection) throws IOException{
 		ArrayList<Employee> selectedEmployeesCollection = new ArrayList<>();
 		
 		FileInputStream fis = null;
 		Workbook wb = null;
 		try {
-			fis = new FileInputStream(new File(filePath));
+			fis = new FileInputStream(file);
 			wb =  WorkbookFactory.create(fis);
 			Sheet sheet = wb.getSheetAt(0);
 			

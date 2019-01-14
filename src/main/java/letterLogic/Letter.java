@@ -49,6 +49,10 @@ public class Letter{
 		createDeadlineTask();
 		letterID = UUID.randomUUID().toString();
 	}
+	
+	public Letter(String senderEmail) {
+		this.senderEmail = senderEmail;
+	}
 
 	public void setAnswer(boolean isAccepted, String eMail) {
 		int index = getIndex(eMail);
@@ -61,16 +65,16 @@ public class Letter{
 		}
 	}
 	
-	public void basAttachmentFormat(String eMail) {
+	public void basAttachmentFormat() {
 		sentErrorMessage("Помилка в Excel таблиці. Зірочкою (*) було відмічено одне або більше полів з іменами людей"
 						  + " відомостей про яких немає в базі даних \r\n");
 	}
 	
-	public void sentBadIDError(String eMail) {
+	public void sentBadIDError() {
 		sentErrorMessage("Перевірте правильність введеного в листі ID \r\n");
 	}
 	
-	public void sentBadLetterTypeError(String eMail) {
+	public void sentBadLetterTypeError() {
 		sentErrorMessage("Лист не відповідає вимогам, неможливо визначити його тип ID \r\n");
 	}
 	
@@ -194,7 +198,7 @@ public class Letter{
 	}
 	private GmailClient getClient() {
 		return GmailClient.get()
-				.loginWith(EmailAuthenticator.Gmail.auth("serhiy.mazur1@gmail.com", "****"))
+				.loginWith(EmailAuthenticator.Gmail.auth("vokarpaty.server.mail@gmail.com", "vokarpatyIPZ"))
 				.beforeLogin(() -> {})
 				.onLoginError(e -> logger.log(e))
 				.onLoginSuccess(() -> {});
