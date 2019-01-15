@@ -8,7 +8,7 @@ import letterLogic.LetterType;
 public class LetterTypeChecker {
 
 	public boolean isAnswerPositive(String answerLetterContent) {
-		if(answerLetterContent.trim().split(" ")[1].equals("Дозволено")) {
+		if(answerLetterContent.trim().split(" ")[1].equals("Погоджено")) {
 			return true;
 		}
 		else if(answerLetterContent.trim().split(" ")[1].equals("Відхилено")) {
@@ -33,10 +33,10 @@ public class LetterTypeChecker {
 	}
 	
 	public LetterType IsRequest(String subject, boolean isAttachment) {
-		if(subject.trim().equals("Запит") && isAttachment) {
+		if(subject.trim().contains("Запит") && isAttachment) {
 			return LetterType.REQUEST;
 		}
-		else if(subject.trim().equals("Відповідь") && !isAttachment) {
+		else if(subject.trim().contains("Відповідь") && !isAttachment) {
 			return LetterType.ANSWER;
 		}
 		else {

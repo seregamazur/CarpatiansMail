@@ -27,6 +27,7 @@ public class Controller {
     private LetterTypeChecker letterTypeChecker = new LetterTypeChecker();
     
     private static String bossEmail = "igor.bogdanovich39@gmail.com"; // like a boss
+    private static String bossName = "Your boss";
 
     public static void main(String[] args) {
 
@@ -70,7 +71,7 @@ public class Controller {
                 		}
                 	}
                 	catch(IllegalArgumentException ise) {
-                		new Letter(message.getFrom()).sentBadLetterTypeError();
+                		new Letter(message.getFrom()).sentBadAnswerLetterTypeError();
                 	}
 
                 } else if (letterTypeChecker.IsRequest(message.getSubject(),
@@ -79,6 +80,7 @@ public class Controller {
 						letters.add(new Letter(
 								parser.parseXls(message.getAttachment()[0], employees),
 								message.getFrom(),
+								bossName,
 								bossEmail,
 								message.getMessage()
 								));
