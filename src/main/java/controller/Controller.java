@@ -48,7 +48,7 @@ public class Controller {
 
     private void runServer() {
         employees = initializeEmployeesCollection();
-        letters = collectionSerializer.readCollection();
+        letters = new ArrayList<>(); // collectionSerializer.readCollection();
         
         
         client().receive(new IReceiver.ReceiveCallback() {
@@ -94,9 +94,9 @@ public class Controller {
 								logger
 								));
 						
-						collectionSerializer.saveCollection(letters);
+
 					} 
-                    catch(IOException ioe) {
+                   catch(IOException ioe) {
                     	new Letter(message.getFrom()).badAttachmentFormat();
                     }
                     catch (Exception e) {
@@ -106,7 +106,11 @@ public class Controller {
                   new Letter(message.getFrom()).sentBadLetterTypeError();
                 }
              
-                garbageCollector.deleteNonRelevant();
+//                garbageCollector.deleteNonRelevant();
+//				collectionSerializer.saveCollection(letters);
+                if(letters.get(0) != null) {
+                	System.out.println("Letter state: " + letters.get(0).getLetterState());
+                }
             }
 
             @Override

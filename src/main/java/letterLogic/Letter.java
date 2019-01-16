@@ -71,7 +71,7 @@ public class Letter implements Serializable{
 				throw new IllegalArgumentException();
 			}
 			letterState[index] = (isAccepted) ? 1 : -1; 
-			if(checkLevelAnswers()) {
+			if(isCurrentLevelEmpty() || checkLevelAnswers()) {
 				LevelUp();
 			}
 		}
@@ -169,27 +169,28 @@ public class Letter implements Serializable{
 	}
 	
 	private void LevelUp() {
-		if(checkIfCurrentLevelNotEmpty() && currentLevel >= 0) {
+		while(isCurrentLevelEmpty()) {
+			if(currentLevel == 0) {
+				currentGeneralLetterState = LetterState.ACCEPTED;
+				sent();
+				break;
+			}
+			currentLevel--;
+		}
+		if(checkLevelAnswers()) {
 			if(checkFullLevel()) {
-				if(currentLevel > 0) {
-					currentLevel--;
-				}
-				else {
-					currentGeneralLetterState = LetterState.ACCEPTED;
-				}
+				currentGeneralLetterState = LetterState.ACCEPTED;
 			}
 			else {
 				currentGeneralLetterState = LetterState.REJECTED;
 			}
+			sent();
 		}
-		else {
-			currentLevel--;
-		}
-		sent();
+		
 	}
 	
-	private boolean checkIfCurrentLevelNotEmpty() {
-		return employees.size() != 0;
+	private boolean isCurrentLevelEmpty() {
+		return employees.size() == 0;
 	}
 	
 	private void sentToBoss() {

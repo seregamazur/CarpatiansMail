@@ -35,15 +35,18 @@ public class CollectionSerializer {
 	public ArrayList<Letter> readCollection() {
 		ArrayList<Letter> letters = new ArrayList<>();
 		
-		try(ObjectInputStream ois = new ObjectInputStream(new FileInputStream(fileName)))
-        {
-             
-			letters = ((ArrayList<Letter>)ois.readObject());
-        }
-        catch(Exception ex){          
-        	logger.log(ex);
-        } 
+		File file = new File(fileName);
 		
+		if(file.exists()) {
+			try(ObjectInputStream ois = new ObjectInputStream(new FileInputStream(fileName)))
+	        {
+	             
+				letters = ((ArrayList<Letter>)ois.readObject());
+	        }
+	        catch(Exception ex){          
+	        	logger.log(ex);
+	        } 
+		}
 		return letters;
 	}
 }
