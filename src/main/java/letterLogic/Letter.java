@@ -7,6 +7,7 @@ import client.core.common.SendedMessage;
 import employee.Employee;
 import exceptionsLogger.ExceptionsLogger;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Timer;
@@ -15,15 +16,17 @@ import java.util.UUID;
 
 
 
-public class Letter{
+@SuppressWarnings("serial")
+public class Letter implements Serializable{
 	final BaseGmailClient client = getClient().auth();
-	private ExceptionsLogger logger = new ExceptionsLogger("D:/serverExcetions.log");
+	private ExceptionsLogger logger;
 	
 	
 	private Timer timer;
 	private TimerTask deadlineCheckTask;
 	private final int deadlineCheckTaskPeriod = 60*1000; //1 * 24 * 3600 * 1000;
-	private final int answerDeadlineMinutes = 10;
+	private int answerDeadlineMinutes = 10;
+	private int answerDeadlineMinutesAfterBreak = 5;
 	
 	private ArrayList<Employee> employees;
 	private String content;
@@ -39,7 +42,7 @@ public class Letter{
 	private String letterID;
 	
 	
-	public Letter(ArrayList<Employee> employees, String senderEmail, String bossName, String bossEmail, String content) {
+	public Letter(ArrayList<Employee> employees, String senderEmail, String bossName, String bossEmail, String content, ExceptionsLogger logger) {
 		this.employees = employees;
 		this.senderEmail = senderEmail;
 		this.bossEmail = bossEmail;
@@ -49,6 +52,7 @@ public class Letter{
 		this.letterState = new int[employees.size()];
 		this.sendTime = new LocalDateTime[employees.size()];
 		letterID = UUID.randomUUID().toString();
+		this.logger = logger;
 		sent();
 		createDeadlineTask();
 	}
@@ -101,7 +105,15 @@ public class Letter{
 		client.send(sentErrorMessage("Даний запит уже було погоджено керіником"));
 	}
 	
-	public void handleBossAnswer(boolean isAccepted) {
+	public String getLetterID() {
+		return letterID;
+	}
+	
+	public LetterState getLetterState() {
+		return currentGeneralLetterState;
+	}
+	
+	private void handleBossAnswer(boolean isAccepted) {
 		if(isAccepted) {
 			sentBackToSenderPositiveAnswer();
 			currentGeneralLetterState = LetterState.ACCEPTED_BY_BOSS;
@@ -114,9 +126,6 @@ public class Letter{
 		}
 	}
 	
-	public String getLetterID() {
-		return letterID;
-	}
 	
 	private int getMaxLevel() {
 		int maxLevel = 0;
@@ -205,7 +214,12 @@ public class Letter{
 	}
 	
 	private boolean breakAnswerDeadline(int index) {
-		return sendTime[index] != null && sendTime[index].plusMinutes(answerDeadlineMinutes).isBefore(LocalDateTime.now()) && letterState[index] == 0; 
+		if(sendTime[index] != null && sendTime[index].plusMinutes(answerDeadlineMinutes).isBefore(LocalDateTime.now()) && letterState[index] == 0){
+			sendTime[index] = LocalDateTime.now();
+			answerDeadlineMinutes = answerDeadlineMinutesAfterBreak;
+			return true;
+		}
+		return false;
 	}
 	
 	private void deadlineControl() {
@@ -318,11 +332,6 @@ public class Letter{
 	
 }
 
- 
-
-enum LetterState{
-	UNDEFINED, REJECTED, ACCEPTED, ACCEPTED_BY_BOSS;
-}
  
 
 		

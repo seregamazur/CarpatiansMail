@@ -25,6 +25,7 @@ public class ExceptionsLogger {
 			
 			pw.print("\r\n\r\n\r\n-----------------------" + dtf.format(now) + "-----------------\r\n\r\n");
 			
+			pw.println(exception);
 			pw.println(exception.getMessage());
 			
 			for(StackTraceElement ste : exception.getStackTrace()) {

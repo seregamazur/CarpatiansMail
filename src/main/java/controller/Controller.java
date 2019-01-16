@@ -6,12 +6,15 @@ import client.core.common.ReceivedMessage;
 import client.core.interfaces.IReceiver;
 import employee.Employee;
 import exceptionsLogger.ExceptionsLogger;
+import letterLogic.CollectionSerializer;
+import letterLogic.GarbageCollector;
 import letterLogic.Letter;
 import letterLogic.LetterType;
 import parser.LetterTypeChecker;
 import parser.Parser;
 import parser.ParserJson;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -21,10 +24,12 @@ import javax.mail.MessagingException;
 public class Controller {
 
     private Parser parser = new Parser();
-    private ArrayList<Letter> letters = new ArrayList<>();
+    private ArrayList<Letter> letters;
     private ArrayList<Employee> employees;
     private static ExceptionsLogger logger = new ExceptionsLogger("D:/serverExceptions.log");
     private LetterTypeChecker letterTypeChecker = new LetterTypeChecker();
+    private GarbageCollector garbageCollector = new GarbageCollector(letters);
+    private CollectionSerializer collectionSerializer = new CollectionSerializer("D:/Letters.dat", logger);
     
     private static String bossEmail = "igor.bogdanovich39@gmail.com"; // like a boss
     private static String bossName = "Your boss";
@@ -43,6 +48,9 @@ public class Controller {
 
     private void runServer() {
         employees = initializeEmployeesCollection();
+        letters = collectionSerializer.readCollection();
+        
+        
         client().receive(new IReceiver.ReceiveCallback() {
             @Override
             public void onReceive(Set<ReceivedMessage> messages) {
@@ -82,16 +90,23 @@ public class Controller {
 								message.getFrom(),
 								bossName,
 								bossEmail,
-								message.getMessage()
+								message.getMessage(),
+								logger
 								));
-					} catch (Exception e) {
+						
+						collectionSerializer.saveCollection(letters);
+					} 
+                    catch(IOException ioe) {
+                    	new Letter(message.getFrom()).badAttachmentFormat();
+                    }
+                    catch (Exception e) {
 						logger.log(e);
 					}
                 } else {
                   new Letter(message.getFrom()).sentBadLetterTypeError();
                 }
              
-        
+                garbageCollector.deleteNonRelevant();
             }
 
             @Override
