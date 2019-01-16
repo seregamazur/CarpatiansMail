@@ -18,7 +18,7 @@ import java.util.UUID;
 
 @SuppressWarnings("serial")
 public class Letter implements Serializable{
-	final BaseGmailClient client = getClient().auth();
+	final BaseGmailClient client;
 	private ExceptionsLogger logger;
 	
 	
@@ -27,6 +27,12 @@ public class Letter implements Serializable{
 	private final int deadlineCheckTaskPeriod = 60*1000; //1 * 24 * 3600 * 1000;
 	private int answerDeadlineMinutes = 10;
 	private int answerDeadlineMinutesAfterBreak = 5;
+	
+	
+	private final String serverName;
+	private final String serverEmail;
+	private final String serverPassword;
+	
 	
 	private ArrayList<Employee> employees;
 	private String content;
@@ -42,7 +48,10 @@ public class Letter implements Serializable{
 	private String letterID;
 	
 	
-	public Letter(ArrayList<Employee> employees, String senderEmail, String bossName, String bossEmail, String content, ExceptionsLogger logger) {
+	public Letter(String serverName, String serverEmail, String serverPassword, ArrayList<Employee> employees, String senderEmail, String bossName, String bossEmail, String content, ExceptionsLogger logger) {
+		this.serverName = serverName;
+		this.serverEmail = serverEmail;
+		this.serverPassword = serverPassword;
 		this.employees = employees;
 		this.senderEmail = senderEmail;
 		this.bossEmail = bossEmail;
@@ -53,12 +62,17 @@ public class Letter implements Serializable{
 		this.sendTime = new LocalDateTime[employees.size()];
 		letterID = UUID.randomUUID().toString();
 		this.logger = logger;
+		client = getClient().auth();
 		sent();
 		createDeadlineTask();
 	}
 	
-	public Letter(String senderEmail) {
+	public Letter(String serverName, String serverEmail, String serverPassword, String senderEmail) {
+		this.serverName = serverName;
+		this.serverEmail = serverEmail;
+		this.serverPassword = serverPassword;
 		this.senderEmail = senderEmail;
+		client = getClient().auth();
 	}
 
 	public void setAnswer(boolean isAccepted, String eMail) {
@@ -282,7 +296,7 @@ public class Letter implements Serializable{
 	}
 	private GmailClient getClient() {
 		return GmailClient.get()
-				.loginWith(EmailAuthenticator.Gmail.auth("vokarpaty.server.mail@gmail.com", "vokarpatyIPZ"))
+				.loginWith(EmailAuthenticator.Gmail.auth(serverEmail, serverPassword))
 				.beforeLogin(() -> {})
 				.onLoginError(e -> logger.log(e))
 				.onLoginSuccess(() -> {});
@@ -291,13 +305,13 @@ public class Letter implements Serializable{
 	private SendedMessage messageTo(String eMail) {
 		return new SendedMessage("Запит", letterID +" - скопіюйте це і вставте першим словом у відповіді \r\n"+
 								"Запит від " + senderEmail + "\r\n\r\n" + content)
-				.from("ВО \"Карпати\" (сервер)")
+				.from(serverName)
 				.to(eMail.trim());
 	}
 
 	private SendedMessage messagePositiveAnswerToSender() {
 		return new SendedMessage("Відповідь","Ваш запит погоджено!!!\r\n\r\n"+ content)
-				.from("ВО \"Карпати\" (сервер)")
+				.from(serverName)
 				.to(senderEmail);
 	}
 	
@@ -320,14 +334,14 @@ public class Letter implements Serializable{
 				+ "Запит погодили: \r\n" + whoAcceptItString + "\r\n\r\n" 
 				+ "Керівники вищого рівня не отримують листа, якщо на нього була хоча б одна відмова\r\n\r\n"
 				+ content)
-				.from("ВО \"Карпати\" (сервер)")
+				.from(serverName)
 				.to(senderEmail);
 	}
 	
 	private SendedMessage sentErrorMessage(String errMessage) {
 		return new SendedMessage( "Помилка відправлення!!!","Лист відповідь на запит " + senderEmail
 				+ " не було відправлено\r\n"+ errMessage)
-			.from("ВО \"Карпати\" (сервер)")
+			.from(serverName)
 			.to(senderEmail);
 	}
 	

@@ -8,10 +8,10 @@ import letterLogic.LetterType;
 public class LetterTypeChecker {
 
 	public boolean isAnswerPositive(String answerLetterContent) {
-		if(answerLetterContent.trim().split(" ")[1].equals("Погоджено")) {
+		if(answerLetterContent.trim().split(" ")[1].contains("Погоджено")) {
 			return true;
 		}
-		else if(answerLetterContent.trim().split(" ")[1].equals("Відхилено")) {
+		else if(answerLetterContent.trim().split(" ")[1].contains("Відхилено")) {
 			return false;
 		}
 		else {

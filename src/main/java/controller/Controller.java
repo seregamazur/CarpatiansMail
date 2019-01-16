@@ -22,21 +22,39 @@ import java.util.stream.Collectors;
 import javax.mail.MessagingException;
 
 public class Controller {
-
+	
+	private static String configPath = "D:\\config.json";
+	
+	  
+    private static String bossEmail;
+    private static String bossName;
+    private static String serverName;
+    private static String serverEmail;
+    private static String serverPassword;
+    private static String JSON_Path;
+    private static String DirPath;
+    
+    
     private Parser parser = new Parser();
+    private ParserJson parserJSON = new ParserJson();
     private ArrayList<Letter> letters;
     private ArrayList<Employee> employees;
-    private static ExceptionsLogger logger = new ExceptionsLogger("D:/serverExceptions.log");
+    private static ExceptionsLogger logger;
     private LetterTypeChecker letterTypeChecker = new LetterTypeChecker();
     private GarbageCollector garbageCollector = new GarbageCollector(letters);
-    private CollectionSerializer collectionSerializer = new CollectionSerializer("D:/Letters.dat", logger);
-    
-    private static String bossEmail = "igor.bogdanovich39@gmail.com"; // like a boss
-    private static String bossName = "Your boss";
+    private CollectionSerializer collectionSerializer;
+  
 
     public static void main(String[] args) {
-
+    	
+    	
+    	
         Controller controller = new Controller();
+        controller.InitializeConfig();
+        controller.logger = new ExceptionsLogger(DirPath + "serverExceptions.log");
+        controller.collectionSerializer =  new CollectionSerializer(DirPath + "Letters.dat", logger);
+        
+        
         try {
         	controller.runServer();
         }
@@ -79,13 +97,16 @@ public class Controller {
                 		}
                 	}
                 	catch(IllegalArgumentException ise) {
-                		new Letter(message.getFrom()).sentBadAnswerLetterTypeError();
+                		new Letter(serverName, serverEmail, serverPassword, message.getFrom()).sentBadAnswerLetterTypeError();
                 	}
 
                 } else if (letterTypeChecker.IsRequest(message.getSubject(),
                         message.getAttachment()!= null) == LetterType.REQUEST) {
                     try {
 						letters.add(new Letter(
+								serverName,
+								serverEmail,
+								serverPassword,
 								parser.parseXls(message.getAttachment()[0], employees),
 								message.getFrom(),
 								bossName,
@@ -97,13 +118,13 @@ public class Controller {
 
 					} 
                    catch(IOException ioe) {
-                    	new Letter(message.getFrom()).badAttachmentFormat();
+                    	new Letter(serverName, serverEmail, serverPassword, message.getFrom()).badAttachmentFormat();
                     }
                     catch (Exception e) {
 						logger.log(e);
 					}
                 } else {
-                  new Letter(message.getFrom()).sentBadLetterTypeError();
+                  new Letter(serverName, serverEmail, serverPassword, message.getFrom()).sentBadLetterTypeError();
                 }
              
 //                garbageCollector.deleteNonRelevant();
@@ -120,12 +141,27 @@ public class Controller {
         });
     }
 
+     private void InitializeConfig() {
+    	String[] config = null;
+    	try {
+			config = parserJSON.getServerConfiguration(configPath);
+		} catch (Exception e) {
+			logger.log(e);
+		}
+    	bossEmail        =  config[0]; 
+    	bossName         =  config[1]; 
+    	serverName       =  config[2]; 
+    	serverEmail      =  config[3]; 
+    	serverPassword   =  config[4]; 
+    	JSON_Path        =  config[5]; 
+    	DirPath   =  config[6]; 
+    }
 
     private ArrayList<Employee> initializeEmployeesCollection() {
 
         ArrayList<Employee> employees = null;
         try {
-            employees = new ParserJson().parseJSON("D:\\employees.json");
+            employees = parserJSON.getEmoloyeesCollectionFromJSON(JSON_Path);
         } catch (Exception e) {
             logger.log(e);
         }
@@ -134,7 +170,7 @@ public class Controller {
 
     public GmailClient client() {
         GmailClient client = GmailClient.get()
-                .loginWith(Gmail.auth("vokarpaty.server.mail@gmail.com", "vokarpatyIPZ"))
+                .loginWith(Gmail.auth(serverEmail, serverPassword))
                 .beforeLogin(() -> System.out.println("Login..."))
                 .onLoginError(e -> logger.log(e))
                 .onLoginSuccess(() -> System.out.println("Success login!"));
