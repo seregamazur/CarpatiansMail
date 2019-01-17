@@ -151,6 +151,16 @@ public class Letter implements Serializable{
 		return maxLevel;
 	}
 	
+	private int getMinLevel() {
+		int minLevel = getMaxLevel();
+		for(Employee e : employees) {
+			if(e.getLevel() < minLevel) {
+				minLevel = e.getLevel();
+			}
+		}
+		return minLevel;
+	}
+	
 	
 	private int getIndex(String eMail) {
 		int index = -1;
@@ -183,28 +193,48 @@ public class Letter implements Serializable{
 	}
 	
 	private void LevelUp() {
-		while(isCurrentLevelEmpty()) {
-			if(currentLevel == 0) {
-				currentGeneralLetterState = LetterState.ACCEPTED;
-				sent();
-				break;
+
+		loop:
+		while(true) {
+			if(!isCurrentLevelEmpty() && checkLevelAnswers()) {
+				if(!checkFullLevel()) {
+					currentGeneralLetterState = LetterState.REJECTED;
+					sent();
+					break loop;
+				}
+				else if(currentLevel == getMinLevel()) {
+					currentGeneralLetterState = LetterState.ACCEPTED;
+					sent();
+					break loop;
+				}
+				else {
+					currentLevel--;
+				}
 			}
-			currentLevel--;
-		}
-		if(checkLevelAnswers()) {
-			if(checkFullLevel()) {
-				currentGeneralLetterState = LetterState.ACCEPTED;
-			}
-			else {
-				currentGeneralLetterState = LetterState.REJECTED;
+			
+			while(isCurrentLevelEmpty()) {
+				if(currentLevel == 0) {
+					currentGeneralLetterState = LetterState.ACCEPTED;
+					sent();
+					break loop;
+				}
+				currentLevel--;
 			}
 			sent();
+			break;
 		}
+		
 		
 	}
 	
 	private boolean isCurrentLevelEmpty() {
-		return employees.size() == 0;
+		boolean isEmpty = true;
+		for(Employee e : employees) {
+			if(e.getLevel() == currentLevel) {
+				isEmpty = false;
+			}
+		}
+		return isEmpty;
 	}
 	
 	private void sentToBoss() {
