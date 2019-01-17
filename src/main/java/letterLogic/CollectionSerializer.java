@@ -21,7 +21,7 @@ public class CollectionSerializer {
 	
 	public void saveCollection(ArrayList<Letter> letters) {
 		
-		 try(ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(new File(fileName))))
+		 try(ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(fileName)))
 	        {
 	            oos.writeObject(letters);
 	        }

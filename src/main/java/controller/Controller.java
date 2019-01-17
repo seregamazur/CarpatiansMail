@@ -37,21 +37,22 @@ public class Controller {
     
     private Parser parser = new Parser();
     private ParserJson parserJSON = new ParserJson();
-    private ArrayList<Letter> letters;
+    private static ArrayList<Letter> letters;
     private ArrayList<Employee> employees;
     private static ExceptionsLogger logger;
     private LetterTypeChecker letterTypeChecker = new LetterTypeChecker();
-    private GarbageCollector garbageCollector = new GarbageCollector(letters);
+    private static GarbageCollector garbageCollector = new GarbageCollector(letters);
     private CollectionSerializer collectionSerializer;
   
 
-    public static void main(String[] args) {
+
+	public static void main(String[] args) {
     	
     	
     	
         Controller controller = new Controller();
         controller.InitializeConfig();
-        controller.logger = new ExceptionsLogger(DirPath + "serverExceptions.log");
+        logger = new ExceptionsLogger(DirPath + "serverExceptions.log");
         controller.collectionSerializer =  new CollectionSerializer(DirPath + "Letters.dat", logger);
         
         
@@ -66,7 +67,7 @@ public class Controller {
 
     private void runServer() {
         employees = initializeEmployeesCollection();
-        letters = new ArrayList<>(); // collectionSerializer.readCollection();
+        letters =  collectionSerializer.readCollection();
         
         
         client().receive(new IReceiver.ReceiveCallback() {
@@ -97,7 +98,7 @@ public class Controller {
                 		}
                 	}
                 	catch(IllegalArgumentException ise) {
-                		new Letter(serverName, serverEmail, serverPassword, message.getFrom()).sentBadAnswerLetterTypeError();
+                		new Letter(serverName, serverEmail, serverPassword, message.getFrom(), client()).sentBadAnswerLetterTypeError();
                 	}
 
                 } else if (letterTypeChecker.IsRequest(message.getSubject(),
@@ -112,23 +113,24 @@ public class Controller {
 								bossName,
 								bossEmail,
 								message.getMessage(),
-								logger
+								logger,
+								client()
 								));
 						
 
 					} 
                    catch(IOException ioe) {
-                    	new Letter(serverName, serverEmail, serverPassword, message.getFrom()).badAttachmentFormat();
+                    	new Letter(serverName, serverEmail, serverPassword, message.getFrom(), client()).badAttachmentFormat();
                     }
                     catch (Exception e) {
 						logger.log(e);
 					}
                 } else {
-                  new Letter(serverName, serverEmail, serverPassword, message.getFrom()).sentBadLetterTypeError();
+                  new Letter(serverName, serverEmail, serverPassword, message.getFrom(), client()).sentBadLetterTypeError();
                 }
              
-//                garbageCollector.deleteNonRelevant();
-//				collectionSerializer.saveCollection(letters);
+//              garbageCollector.deleteNonRelevant();
+				collectionSerializer.saveCollection(letters);
                 if(letters.get(0) != null) {
                 	System.out.println("Letter state: " + letters.get(0).getLetterState());
                 }
@@ -154,7 +156,7 @@ public class Controller {
     	serverEmail      =  config[3]; 
     	serverPassword   =  config[4]; 
     	JSON_Path        =  config[5]; 
-    	DirPath   =  config[6]; 
+    	DirPath 	     =  config[6]; 
     }
 
     private ArrayList<Employee> initializeEmployeesCollection() {

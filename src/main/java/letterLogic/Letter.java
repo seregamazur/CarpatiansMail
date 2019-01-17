@@ -18,7 +18,7 @@ import java.util.UUID;
 
 @SuppressWarnings("serial")
 public class Letter implements Serializable{
-	final BaseGmailClient client;
+	transient final BaseGmailClient client;
 	private ExceptionsLogger logger;
 	
 	
@@ -48,7 +48,7 @@ public class Letter implements Serializable{
 	private String letterID;
 	
 	
-	public Letter(String serverName, String serverEmail, String serverPassword, ArrayList<Employee> employees, String senderEmail, String bossName, String bossEmail, String content, ExceptionsLogger logger) {
+	public Letter(String serverName, String serverEmail, String serverPassword, ArrayList<Employee> employees, String senderEmail, String bossName, String bossEmail, String content, ExceptionsLogger logger, BaseGmailClient client) {
 		this.serverName = serverName;
 		this.serverEmail = serverEmail;
 		this.serverPassword = serverPassword;
@@ -62,17 +62,17 @@ public class Letter implements Serializable{
 		this.sendTime = new LocalDateTime[employees.size()];
 		letterID = UUID.randomUUID().toString();
 		this.logger = logger;
-		client = getClient().auth();
+		this.client = client;//getClient().auth();
 		sent();
 		createDeadlineTask();
 	}
 	
-	public Letter(String serverName, String serverEmail, String serverPassword, String senderEmail) {
+	public Letter(String serverName, String serverEmail, String serverPassword, String senderEmail,  BaseGmailClient client) {
 		this.serverName = serverName;
 		this.serverEmail = serverEmail;
 		this.serverPassword = serverPassword;
 		this.senderEmail = senderEmail;
-		client = getClient().auth();
+		this.client = client;//getClient().auth();
 	}
 
 	public void setAnswer(boolean isAccepted, String eMail) {
@@ -330,8 +330,8 @@ public class Letter implements Serializable{
 		}
 		
 		return new SendedMessage("Відповідь","Ваш запит відхилено!\r\n\r\n"
-				+ "Запит відхилили: \r\n"+ whoRejectItString + "\r\n\r\n" 
-				+ "Запит погодили: \r\n" + whoAcceptItString + "\r\n\r\n" 
+				+ ((peopleWhoRejectIt.size() > 0) ? "Запит відхилили: \r\n"+ whoRejectItString  + "\r\n\r\n" : "")
+				+ ((peopleWhoAcceptIt.size() > 0) ? "Запит погодили: \r\n" + whoAcceptItString  + "\r\n\r\n" : "")
 				+ "Керівники вищого рівня не отримують листа, якщо на нього була хоча б одна відмова\r\n\r\n"
 				+ content)
 				.from(serverName)
