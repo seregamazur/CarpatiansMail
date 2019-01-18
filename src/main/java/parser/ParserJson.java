@@ -65,12 +65,9 @@ public class ParserJson {
 	    	fileInputStream = new FileInputStream(filePath);
 	    	
 	    	reader = Json.createReader(fileInputStream);
-	    	JsonObject employeesObject = reader.readObject();
+
+	        JsonObject value = reader.readObject().asJsonObject();
 	        
-	        JsonArray employees = employeesObject.getJsonArray("config");
-	        
-	          employees.forEach(jsonValue -> {
-	        	JsonObject value = (JsonObject)jsonValue;
 	        	config[0] = value.getString("bossEmail").trim();
 	        	config[1] = value.getString("bossName").trim();
 	        	config[2] = value.getString("serverName").trim();
@@ -78,7 +75,6 @@ public class ParserJson {
 	        	config[4] = value.getString("serverPassword").trim();
 	        	config[5] = value.getString("JSON_Path").trim();
 	        	config[6] = value.getString("DirPath").trim();
-	        });
 	
 		} 
 	    finally {
