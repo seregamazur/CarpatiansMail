@@ -10,6 +10,7 @@ import letterLogic.CollectionSerializer;
 import letterLogic.GarbageCollector;
 import letterLogic.Letter;
 import letterLogic.LetterType;
+import letterLogic.Reminder;
 import parser.LetterTypeChecker;
 import parser.Parser;
 import parser.ParserJson;
@@ -37,22 +38,23 @@ public class Controller {
     
     private Parser parser = new Parser();
     private ParserJson parserJSON = new ParserJson();
-    private ArrayList<Letter> letters;
+    private static ArrayList<Letter> letters;
     private ArrayList<Employee> employees;
     private static ExceptionsLogger logger;
     private LetterTypeChecker letterTypeChecker = new LetterTypeChecker();
-    private GarbageCollector garbageCollector = new GarbageCollector(letters);
+    private static GarbageCollector garbageCollector;
     private CollectionSerializer collectionSerializer;
-  
+    private Reminder reminder;
 
-    public static void main(String[] args) {
+
+	public static void main(String[] args) {
     	
     	
     	
         Controller controller = new Controller();
         controller.InitializeConfig();
-        controller.logger = new ExceptionsLogger(DirPath + "serverExceptions.log");
-        controller.collectionSerializer =  new CollectionSerializer(DirPath + "Letters.dat", logger);
+        logger = new ExceptionsLogger(DirPath + "serverExceptions.log");
+        controller.collectionSerializer =  new CollectionSerializer(DirPath + "Letters", logger);
         
         
         try {
@@ -66,8 +68,18 @@ public class Controller {
 
     private void runServer() {
         employees = initializeEmployeesCollection();
-        letters = new ArrayList<>(); // collectionSerializer.readCollection();
+        try {
+        	letters =  collectionSerializer.readCollection();
+        }
+        catch(Exception e) {
+        	letters =  collectionSerializer.readBackupCollection();
+        }
         
+        garbageCollector = new GarbageCollector(letters);
+        reminder = new Reminder(letters);
+        reminder.createDeadlineTask();
+        
+        Letter.staticInitialization(serverName, bossEmail, bossName, client());
         
         client().receive(new IReceiver.ReceiveCallback() {
             @Override
@@ -97,41 +109,33 @@ public class Controller {
                 		}
                 	}
                 	catch(IllegalArgumentException ise) {
-                		new Letter(serverName, serverEmail, serverPassword, message.getFrom()).sentBadAnswerLetterTypeError();
+                		new Letter(message.getFrom()).sentBadAnswerLetterTypeError();
                 	}
 
                 } else if (letterTypeChecker.IsRequest(message.getSubject(),
                         message.getAttachment()!= null) == LetterType.REQUEST) {
                     try {
 						letters.add(new Letter(
-								serverName,
-								serverEmail,
-								serverPassword,
 								parser.parseXls(message.getAttachment()[0], employees),
 								message.getFrom(),
-								bossName,
-								bossEmail,
-								message.getMessage(),
-								logger
+								message.getMessage()
 								));
 						
 
 					} 
                    catch(IOException ioe) {
-                    	new Letter(serverName, serverEmail, serverPassword, message.getFrom()).badAttachmentFormat();
+                	   new Letter(message.getFrom()).badAttachmentFormat();
                     }
                     catch (Exception e) {
 						logger.log(e);
 					}
                 } else {
-                  new Letter(serverName, serverEmail, serverPassword, message.getFrom()).sentBadLetterTypeError();
+                	new Letter(message.getFrom()).sentBadLetterTypeError();
                 }
              
-//                garbageCollector.deleteNonRelevant();
-//				collectionSerializer.saveCollection(letters);
-                if(letters.get(0) != null) {
-                	System.out.println("Letter state: " + letters.get(0).getLetterState());
-                }
+                garbageCollector.deleteNonRelevant();
+				collectionSerializer.saveCollection(letters);
+				System.out.println("Letters objects in system: " + letters.size());
             }
 
             @Override
@@ -154,7 +158,7 @@ public class Controller {
     	serverEmail      =  config[3]; 
     	serverPassword   =  config[4]; 
     	JSON_Path        =  config[5]; 
-    	DirPath   =  config[6]; 
+    	DirPath 	     =  config[6]; 
     }
 
     private ArrayList<Employee> initializeEmployeesCollection() {

@@ -1,6 +1,9 @@
 package employee;
 
-public class Employee {
+import java.io.Serializable;
+
+@SuppressWarnings("serial")
+public class Employee implements Serializable {
 		private String name;
 		private String position;
 		private String eMail;
