@@ -1,6 +1,5 @@
 package letterLogic;
 
-import client.authenticator.EmailAuthenticator;
 import client.core.BaseGmailClient;
 import client.core.GmailClient;
 import client.core.common.SendedMessage;
@@ -18,8 +17,8 @@ import java.util.UUID;
 
 @SuppressWarnings("serial")
 public class Letter implements Serializable{
-	private transient BaseGmailClient client;
-	private transient ExceptionsLogger logger;
+	private static transient BaseGmailClient client;
+	private static transient ExceptionsLogger logger;
 	
 	
 	private transient Timer timer;
@@ -29,16 +28,14 @@ public class Letter implements Serializable{
 	private transient int answerDeadlineMinutesAfterBreak = 5;
 	
 	
-	private String serverName;
-	private String serverEmail;
-	private String serverPassword;
-	
+	private static String serverName;
+
 	
 	private ArrayList<Employee> employees;
 	private String content;
 	private String senderEmail;
-	private String bossEmail;
-	private String bossName;
+	private static String bossEmail;
+	private static String bossName;
 	private int currentLevel;
 	private int[] letterState;
 	
@@ -48,34 +45,35 @@ public class Letter implements Serializable{
 	private String letterID;
 	
 	
-	public Letter(String serverName, String serverEmail, String serverPassword, ArrayList<Employee> employees, String senderEmail, String bossName, String bossEmail, String content, ExceptionsLogger logger, BaseGmailClient client) {
-		this.serverName = serverName;
-		this.serverEmail = serverEmail;
-		this.serverPassword = serverPassword;
+	public Letter(ArrayList<Employee> employees, String senderEmail,String content) {
+		
 		this.employees = employees;
 		this.senderEmail = senderEmail;
-		this.bossEmail = bossEmail;
-		this.bossName = bossName;
+
 		this.content = content;
 		this.currentLevel = getMaxLevel();
 		this.letterState = new int[employees.size()];
 		this.sendTime = new LocalDateTime[employees.size()];
 		letterID = UUID.randomUUID().toString();
-		this.logger = logger;
-		this.client = client;//getClient().auth();
+
 		sent();
 		createDeadlineTask();
 	}
 	
-	public Letter(String serverName, String serverEmail, String serverPassword, String senderEmail,  BaseGmailClient client) {
-		this.serverName = serverName;
-		this.serverEmail = serverEmail;
-		this.serverPassword = serverPassword;
+	public Letter(String senderEmail) {
 		this.senderEmail = senderEmail;
-		this.client = client;//getClient().auth();
 	}
 	
 	public Letter() {}
+	
+	
+	public static void staticInitialization(String serverNameL, String bossEmailL, String bossNameL, ExceptionsLogger loggerL, GmailClient clientL) {
+		serverName = serverNameL;
+		bossEmail = bossEmailL;
+		bossName = bossNameL;
+		logger = loggerL;
+		client = clientL;
+	}
 
 	public void setAnswer(boolean isAccepted, String eMail) {
 		if(currentGeneralLetterState == LetterState.ACCEPTED) {
@@ -326,13 +324,6 @@ public class Letter implements Serializable{
 				break;
 		}
 	}
-	private GmailClient getClient() {
-		return GmailClient.get()
-				.loginWith(EmailAuthenticator.Gmail.auth(serverEmail, serverPassword))
-				.beforeLogin(() -> {})
-				.onLoginError(e -> logger.log(e))
-				.onLoginSuccess(() -> {});
-	}
 
 	private SendedMessage messageTo(String eMail) {
 		return new SendedMessage("Запит", letterID +" - скопіюйте це і вставте першим словом у відповіді \r\n"+
@@ -378,12 +369,3 @@ public class Letter implements Serializable{
 	}
 	
 }
-
- 
-
-		
- 
- 
- 
- 
- 

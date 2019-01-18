@@ -68,7 +68,7 @@ public class Controller {
     private void runServer() {
         employees = initializeEmployeesCollection();
         letters =  collectionSerializer.readCollection();
-        
+        Letter.staticInitialization(serverName, bossEmail, bossName, logger, client());
         
         client().receive(new IReceiver.ReceiveCallback() {
             @Override
@@ -98,35 +98,28 @@ public class Controller {
                 		}
                 	}
                 	catch(IllegalArgumentException ise) {
-                		new Letter(serverName, serverEmail, serverPassword, message.getFrom(), client()).sentBadAnswerLetterTypeError();
+                		new Letter(message.getFrom()).sentBadAnswerLetterTypeError();
                 	}
 
                 } else if (letterTypeChecker.IsRequest(message.getSubject(),
                         message.getAttachment()!= null) == LetterType.REQUEST) {
                     try {
 						letters.add(new Letter(
-								serverName,
-								serverEmail,
-								serverPassword,
 								parser.parseXls(message.getAttachment()[0], employees),
 								message.getFrom(),
-								bossName,
-								bossEmail,
-								message.getMessage(),
-								logger,
-								client()
+								message.getMessage()
 								));
 						
 
 					} 
                    catch(IOException ioe) {
-                    	new Letter(serverName, serverEmail, serverPassword, message.getFrom(), client()).badAttachmentFormat();
+                	   new Letter(message.getFrom()).badAttachmentFormat();
                     }
                     catch (Exception e) {
 						logger.log(e);
 					}
                 } else {
-                  new Letter(serverName, serverEmail, serverPassword, message.getFrom(), client()).sentBadLetterTypeError();
+                	new Letter(message.getFrom()).sentBadLetterTypeError();
                 }
              
 //              garbageCollector.deleteNonRelevant();
