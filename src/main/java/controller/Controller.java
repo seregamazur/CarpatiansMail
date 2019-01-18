@@ -41,7 +41,7 @@ public class Controller {
     private ArrayList<Employee> employees;
     private static ExceptionsLogger logger;
     private LetterTypeChecker letterTypeChecker = new LetterTypeChecker();
-    private static GarbageCollector garbageCollector = new GarbageCollector(letters);
+    private static GarbageCollector garbageCollector;
     private CollectionSerializer collectionSerializer;
   
 
@@ -68,6 +68,8 @@ public class Controller {
     private void runServer() {
         employees = initializeEmployeesCollection();
         letters =  collectionSerializer.readCollection();
+        garbageCollector = new GarbageCollector(letters);
+        
         Letter.staticInitialization(serverName, bossEmail, bossName, logger, client());
         
         client().receive(new IReceiver.ReceiveCallback() {
@@ -122,11 +124,9 @@ public class Controller {
                 	new Letter(message.getFrom()).sentBadLetterTypeError();
                 }
              
-//              garbageCollector.deleteNonRelevant();
+                garbageCollector.deleteNonRelevant();
 				collectionSerializer.saveCollection(letters);
-                if(letters.get(0) != null) {
-                	System.out.println("Letter state: " + letters.get(0).getLetterState());
-                }
+				System.out.println("Letters objects in system: " + letters.size());
             }
 
             @Override

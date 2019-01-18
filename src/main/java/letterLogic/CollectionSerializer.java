@@ -28,6 +28,7 @@ public class CollectionSerializer {
 	        catch(Exception ex){
 	             logger.log(ex);
 	        } 
+		 
 
 	}
 

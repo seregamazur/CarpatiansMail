@@ -2,7 +2,6 @@ package letterLogic;
 
 import client.core.BaseGmailClient;
 import client.core.GmailClient;
-import client.core.common.SendedMessage;
 import employee.Employee;
 import exceptionsLogger.ExceptionsLogger;
 
@@ -19,13 +18,13 @@ import java.util.UUID;
 public class Letter implements Serializable{
 	private static transient BaseGmailClient client;
 	private static transient ExceptionsLogger logger;
-	
+	private static transient LetterFormatter letterFormatter;
 	
 	private transient Timer timer;
 	private transient TimerTask deadlineCheckTask;
 	private transient int deadlineCheckTaskPeriod = 60*1000; //1 * 24 * 3600 * 1000;
-	private transient int answerDeadlineMinutes = 10;
-	private transient int answerDeadlineMinutesAfterBreak = 5;
+	private transient int answerDeadlineMinutes = 3;
+	private transient int answerDeadlineMinutesAfterBreak = 2;
 	
 	
 	private static String serverName;
@@ -73,6 +72,7 @@ public class Letter implements Serializable{
 		bossName = bossNameL;
 		logger = loggerL;
 		client = clientL;
+		letterFormatter = new LetterFormatter(serverName);
 	}
 
 	public void setAnswer(boolean isAccepted, String eMail) {
@@ -92,31 +92,31 @@ public class Letter implements Serializable{
 	}
 	
 	public void badAttachmentFormat() {
-		client.send(sentErrorMessage("Помилка в Excel таблиці. Зірочкою (*) було відмічено одне або більше полів з іменами людей"
-						  + " відомостей про яких немає в базі даних"));
+		client.send(letterFormatter.sentErrorMessage("Помилка в Excel таблиці. Зірочкою (*) було відмічено одне або більше полів з іменами людей"
+						  + " відомостей про яких немає в базі даних", senderEmail));
 	}
 	
 	public void sentBadIDError() {
-		client.send(sentErrorMessage("Листа з вказаним ID не знайдено!\r\n"
-								   + "Перевірте правильність введеного в листі ID. "));
+		client.send(letterFormatter.sentErrorMessage("Листа з вказаним ID не знайдено!\r\n"
+								   + "Перевірте правильність введеного в листі ID. ", senderEmail));
 	}
 	
 	public void sentBadLetterTypeError() {
-		client.send(sentErrorMessage("Лист не відповідає вимогам, неможливо визначити його тип\r\n"
+		client.send(letterFormatter.sentErrorMessage("Лист не відповідає вимогам, неможливо визначити його тип\r\n"
 							       + "Темою листа повенне бути одне з наступних слів: Запит, Відповідь.\r\n"
 							       + "Лист-запит повинен мати Excel таблицю.\r\nЛист-відповідь не повинен "
-							       + "містити прикріплень"));
+							       + "містити прикріплень", senderEmail));
 	}
 	
 	public void sentBadAnswerLetterTypeError() {
-		client.send(sentErrorMessage("Лист-відповідь не відповідає вимогам, неможливо визначити тип відповіді\r\n"
+		client.send(letterFormatter.sentErrorMessage("Лист-відповідь не відповідає вимогам, неможливо визначити тип відповіді\r\n"
 			       + "Лист-відповідь повинен відповідати одному з наступних шаблонів:\r\n"
 			       + "ID Погоджено\r\n"
-			       + "ID Відхилено"));
+			       + "ID Відхилено", senderEmail));
 	}
 	
 	public void sentAlreadyAcceptedError() {
-		client.send(sentErrorMessage("Даний запит уже було погоджено керіником"));
+		client.send(letterFormatter.sentErrorMessage("Даний запит уже було погоджено керіником", senderEmail));
 	}
 	
 	public String getLetterID() {
@@ -238,24 +238,24 @@ public class Letter implements Serializable{
 	}
 	
 	private void sentToBoss() {
-		client.send(messageTo(bossEmail));
+		client.send(letterFormatter.messageToBoss(getWhoAcceptIt(), bossEmail, senderEmail, content,letterID));
 	}
 	
 	private void sentToAllFromCurrentLevel() {
 		for(int i = 0; i < employees.size(); i++) {
 			if(employees.get(i).getLevel() == currentLevel) {
-				client.send(messageTo(employees.get(i).getEmail()));
+				client.send(letterFormatter.messageTo(employees.get(i).getEmail(), senderEmail, content, letterID));
 				sendTime[i] = LocalDateTime.now();
 			}
 		}
 	}
 
 	private void sentBackToSenderPositiveAnswer() {
-		client.send(messagePositiveAnswerToSender());
+		client.send(letterFormatter.messagePositiveAnswerToSender(senderEmail, content));
 	}
 	
 	private void sentBackToSenderNegativeAnswer(ArrayList<Employee> peopleWhoRejectIt, ArrayList<Employee> peopleWhoAcceptIt) {
-		client.send(messageNegativeAnswerToSender(peopleWhoRejectIt, peopleWhoAcceptIt));
+		client.send(letterFormatter.messageNegativeAnswerToSender(peopleWhoRejectIt, peopleWhoAcceptIt, senderEmail, content));
 	}
 	
 	private boolean breakAnswerDeadline(int index) {
@@ -270,7 +270,7 @@ public class Letter implements Serializable{
 	private void deadlineControl() {
 		for(int i = 0; i < employees.size(); i++) {
 			if(breakAnswerDeadline(i)) {
-				client.send(messageTo(employees.get(i).getEmail()));
+				client.send(letterFormatter.messageTo(employees.get(i).getEmail(), senderEmail, content, letterID));
 			}
 		}
 	}
@@ -324,48 +324,4 @@ public class Letter implements Serializable{
 				break;
 		}
 	}
-
-	private SendedMessage messageTo(String eMail) {
-		return new SendedMessage("Запит", letterID +" - скопіюйте це і вставте першим словом у відповіді \r\n"+
-								"Запит від " + senderEmail + "\r\n\r\n" + content)
-				.from(serverName)
-				.to(eMail.trim());
-	}
-
-	private SendedMessage messagePositiveAnswerToSender() {
-		return new SendedMessage("Відповідь","Ваш запит погоджено!!!\r\n\r\n"+ content)
-				.from(serverName)
-				.to(senderEmail);
-	}
-	
-	private SendedMessage messageNegativeAnswerToSender(ArrayList<Employee> peopleWhoRejectIt, ArrayList<Employee> peopleWhoAcceptIt) {
-		
-		StringBuffer whoRejectItString = new StringBuffer();
-		StringBuffer whoAcceptItString = new StringBuffer();
-		
-		
-		for(Employee e : peopleWhoRejectIt) {
-			whoRejectItString.append(e.getName() + "    " + e.getEmail() + "\r\n");
-		}
-		
-		for(Employee e : peopleWhoAcceptIt) {
-			whoAcceptItString.append(e.getName() + "    " + e.getEmail() + "\r\n");
-		}
-		
-		return new SendedMessage("Відповідь","Ваш запит відхилено!\r\n\r\n"
-				+ ((peopleWhoRejectIt.size() > 0) ? "Запит відхилили: \r\n"+ whoRejectItString  + "\r\n\r\n" : "")
-				+ ((peopleWhoAcceptIt.size() > 0) ? "Запит погодили: \r\n" + whoAcceptItString  + "\r\n\r\n" : "")
-				+ "Керівники вищого рівня не отримують листа, якщо на нього була хоча б одна відмова\r\n\r\n"
-				+ content)
-				.from(serverName)
-				.to(senderEmail);
-	}
-	
-	private SendedMessage sentErrorMessage(String errMessage) {
-		return new SendedMessage( "Помилка відправлення!!!","Лист відповідь на запит " + senderEmail
-				+ " не було відправлено\r\n"+ errMessage)
-			.from(serverName)
-			.to(senderEmail);
-	}
-	
 }
