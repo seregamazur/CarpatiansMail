@@ -18,20 +18,20 @@ import java.util.UUID;
 
 @SuppressWarnings("serial")
 public class Letter implements Serializable{
-	transient final BaseGmailClient client;
-	private ExceptionsLogger logger;
+	private transient BaseGmailClient client;
+	private transient ExceptionsLogger logger;
 	
 	
-	private Timer timer;
-	private TimerTask deadlineCheckTask;
-	private final int deadlineCheckTaskPeriod = 60*1000; //1 * 24 * 3600 * 1000;
-	private int answerDeadlineMinutes = 10;
-	private int answerDeadlineMinutesAfterBreak = 5;
+	private transient Timer timer;
+	private transient TimerTask deadlineCheckTask;
+	private transient int deadlineCheckTaskPeriod = 60*1000; //1 * 24 * 3600 * 1000;
+	private transient int answerDeadlineMinutes = 10;
+	private transient int answerDeadlineMinutesAfterBreak = 5;
 	
 	
-	private final String serverName;
-	private final String serverEmail;
-	private final String serverPassword;
+	private String serverName;
+	private String serverEmail;
+	private String serverPassword;
 	
 	
 	private ArrayList<Employee> employees;
@@ -74,6 +74,8 @@ public class Letter implements Serializable{
 		this.senderEmail = senderEmail;
 		this.client = client;//getClient().auth();
 	}
+	
+	public Letter() {}
 
 	public void setAnswer(boolean isAccepted, String eMail) {
 		if(currentGeneralLetterState == LetterState.ACCEPTED) {
@@ -86,7 +88,7 @@ public class Letter implements Serializable{
 			}
 			letterState[index] = (isAccepted) ? 1 : -1; 
 			if(isCurrentLevelEmpty() || checkLevelAnswers()) {
-				LevelUp();
+				levelUp();
 			}
 		}
 	}
@@ -192,7 +194,7 @@ public class Letter implements Serializable{
 		return answered;
 	}
 	
-	private void LevelUp() {
+	private void levelUp() {
 
 		loop:
 		while(true) {

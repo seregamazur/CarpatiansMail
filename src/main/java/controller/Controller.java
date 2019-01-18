@@ -67,7 +67,7 @@ public class Controller {
 
     private void runServer() {
         employees = initializeEmployeesCollection();
-        letters =  new ArrayList<>(); //collectionSerializer.readCollection();
+        letters =  collectionSerializer.readCollection();
         
         
         client().receive(new IReceiver.ReceiveCallback() {
@@ -130,7 +130,7 @@ public class Controller {
                 }
              
 //              garbageCollector.deleteNonRelevant();
-//				collectionSerializer.saveCollection(letters);
+				collectionSerializer.saveCollection(letters);
                 if(letters.get(0) != null) {
                 	System.out.println("Letter state: " + letters.get(0).getLetterState());
                 }
