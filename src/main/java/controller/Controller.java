@@ -10,6 +10,7 @@ import letterLogic.CollectionSerializer;
 import letterLogic.GarbageCollector;
 import letterLogic.Letter;
 import letterLogic.LetterType;
+import letterLogic.Reminder;
 import parser.LetterTypeChecker;
 import parser.Parser;
 import parser.ParserJson;
@@ -43,7 +44,7 @@ public class Controller {
     private LetterTypeChecker letterTypeChecker = new LetterTypeChecker();
     private static GarbageCollector garbageCollector;
     private CollectionSerializer collectionSerializer;
-  
+    private Reminder reminder;
 
 
 	public static void main(String[] args) {
@@ -53,7 +54,7 @@ public class Controller {
         Controller controller = new Controller();
         controller.InitializeConfig();
         logger = new ExceptionsLogger(DirPath + "serverExceptions.log");
-        controller.collectionSerializer =  new CollectionSerializer(DirPath + "Letters.dat", logger);
+        controller.collectionSerializer =  new CollectionSerializer(DirPath + "Letters", logger);
         
         
         try {
@@ -67,10 +68,18 @@ public class Controller {
 
     private void runServer() {
         employees = initializeEmployeesCollection();
-        letters =  collectionSerializer.readCollection();
-        garbageCollector = new GarbageCollector(letters);
+        try {
+        	letters =  collectionSerializer.readCollection();
+        }
+        catch(Exception e) {
+        	letters =  collectionSerializer.readBackupCollection();
+        }
         
-        Letter.staticInitialization(serverName, bossEmail, bossName, logger, client());
+        garbageCollector = new GarbageCollector(letters);
+        reminder = new Reminder(letters);
+        reminder.createDeadlineTask();
+        
+        Letter.staticInitialization(serverName, bossEmail, bossName, client());
         
         client().receive(new IReceiver.ReceiveCallback() {
             @Override

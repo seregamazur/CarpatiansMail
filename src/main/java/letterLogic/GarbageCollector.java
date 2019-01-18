@@ -13,8 +13,8 @@ public class GarbageCollector {
 	
 	public void deleteNonRelevant() {
 		for(int i = 0; i < letters.size(); i++) {
-			if(letters.get(i).getLetterState() == LetterState.REJECTED ||
-		       letters.get(i).getLetterState() == LetterState.ACCEPTED_BY_BOSS) {
+			if(letters.get(i).getCurrentGeneralLetterState() == LetterState.REJECTED ||
+		       letters.get(i).getCurrentGeneralLetterState() == LetterState.ACCEPTED_BY_BOSS) {
 				letters.remove(i);
 			}
 		}

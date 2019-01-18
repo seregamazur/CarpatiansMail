@@ -3,13 +3,10 @@ package letterLogic;
 import client.core.BaseGmailClient;
 import client.core.GmailClient;
 import employee.Employee;
-import exceptionsLogger.ExceptionsLogger;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.UUID;
 
 
@@ -17,15 +14,7 @@ import java.util.UUID;
 @SuppressWarnings("serial")
 public class Letter implements Serializable{
 	private static transient BaseGmailClient client;
-	private static transient ExceptionsLogger logger;
 	private static transient LetterFormatter letterFormatter;
-	
-	private transient Timer timer;
-	private transient TimerTask deadlineCheckTask;
-	private transient int deadlineCheckTaskPeriod = 60*1000; //1 * 24 * 3600 * 1000;
-	private transient int answerDeadlineMinutes = 3;
-	private transient int answerDeadlineMinutesAfterBreak = 2;
-	
 	
 	private static String serverName;
 
@@ -52,11 +41,10 @@ public class Letter implements Serializable{
 		this.content = content;
 		this.currentLevel = getMaxLevel();
 		this.letterState = new int[employees.size()];
-		this.sendTime = new LocalDateTime[employees.size()];
+		this.sendTime = new LocalDateTime[employees.size() + 1];
 		letterID = UUID.randomUUID().toString();
 
 		sent();
-		createDeadlineTask();
 	}
 	
 	public Letter(String senderEmail) {
@@ -66,11 +54,10 @@ public class Letter implements Serializable{
 	public Letter() {}
 	
 	
-	public static void staticInitialization(String serverNameL, String bossEmailL, String bossNameL, ExceptionsLogger loggerL, GmailClient clientL) {
+	public static void staticInitialization(String serverNameL, String bossEmailL, String bossNameL, GmailClient clientL) {
 		serverName = serverNameL;
 		bossEmail = bossEmailL;
 		bossName = bossNameL;
-		logger = loggerL;
 		client = clientL;
 		letterFormatter = new LetterFormatter(serverName);
 	}
@@ -123,8 +110,16 @@ public class Letter implements Serializable{
 		return letterID;
 	}
 	
-	public LetterState getLetterState() {
+	public LetterState getCurrentGeneralLetterState() {
 		return currentGeneralLetterState;
+	}
+	
+	public LocalDateTime[] getLetterSendTime() {
+		return sendTime;
+	}
+	
+	public int[] getLetterState() {
+		return letterState;
 	}
 	
 	private void handleBossAnswer(boolean isAccepted) {
@@ -237,15 +232,20 @@ public class Letter implements Serializable{
 		return isEmpty;
 	}
 	
-	private void sentToBoss() {
+	public void sentToBoss() {
 		client.send(letterFormatter.messageToBoss(getWhoAcceptIt(), bossEmail, senderEmail, content,letterID));
+		sendTime[sendTime.length - 1] = LocalDateTime.now();
+	}
+	
+	public void sentToPerson(int index) {
+		client.send(letterFormatter.messageTo(employees.get(index).getEmail(), senderEmail, content, letterID));
+		sendTime[index] = LocalDateTime.now();
 	}
 	
 	private void sentToAllFromCurrentLevel() {
 		for(int i = 0; i < employees.size(); i++) {
 			if(employees.get(i).getLevel() == currentLevel) {
-				client.send(letterFormatter.messageTo(employees.get(i).getEmail(), senderEmail, content, letterID));
-				sendTime[i] = LocalDateTime.now();
+				sentToPerson(i);
 			}
 		}
 	}
@@ -256,34 +256,6 @@ public class Letter implements Serializable{
 	
 	private void sentBackToSenderNegativeAnswer(ArrayList<Employee> peopleWhoRejectIt, ArrayList<Employee> peopleWhoAcceptIt) {
 		client.send(letterFormatter.messageNegativeAnswerToSender(peopleWhoRejectIt, peopleWhoAcceptIt, senderEmail, content));
-	}
-	
-	private boolean breakAnswerDeadline(int index) {
-		if(sendTime[index] != null && sendTime[index].plusMinutes(answerDeadlineMinutes).isBefore(LocalDateTime.now()) && letterState[index] == 0){
-			sendTime[index] = LocalDateTime.now();
-			answerDeadlineMinutes = answerDeadlineMinutesAfterBreak;
-			return true;
-		}
-		return false;
-	}
-	
-	private void deadlineControl() {
-		for(int i = 0; i < employees.size(); i++) {
-			if(breakAnswerDeadline(i)) {
-				client.send(letterFormatter.messageTo(employees.get(i).getEmail(), senderEmail, content, letterID));
-			}
-		}
-	}
-	
-	private void createDeadlineTask()
-	{
-		timer = new Timer();
-		deadlineCheckTask = new TimerTask() {
-			public void run() {
-				deadlineControl();
-			}
-		};
-		timer.scheduleAtFixedRate(deadlineCheckTask, deadlineCheckTaskPeriod, deadlineCheckTaskPeriod);
 	}
 	
 	private ArrayList<Employee> getWhoRejectIt() {
