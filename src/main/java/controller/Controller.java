@@ -23,10 +23,10 @@ import java.util.stream.Collectors;
 import javax.mail.MessagingException;
 
 public class Controller {
-	
-	private static String configPath = "D:\\config.json";
-	
-	  
+
+    private static String configPath = "D:\\config.json";
+
+
     private static String bossEmail;
     private static String bossName;
     private static String serverName;
@@ -34,8 +34,8 @@ public class Controller {
     private static String serverPassword;
     private static String JSON_Path;
     private static String DirPath;
-    
-    
+
+
     private Parser parser = new Parser();
     private ParserJson parserJSON = new ParserJson();
     private static ArrayList<Letter> letters;
@@ -45,23 +45,22 @@ public class Controller {
     private static GarbageCollector garbageCollector;
     private CollectionSerializer collectionSerializer;
     private Reminder reminder;
+    private GmailClient client;
 
 
-	public static void main(String[] args) {
-    	
-    	
-    	
+    public static void main(String[] args) {
+
+
         Controller controller = new Controller();
         controller.InitializeConfig();
         logger = new ExceptionsLogger(DirPath + "serverExceptions.log");
-        controller.collectionSerializer =  new CollectionSerializer(DirPath + "Letters", logger);
-        
-        
+        controller.collectionSerializer = new CollectionSerializer(DirPath + "Letters", logger);
+
+
         try {
-        	controller.runServer();
-        }
-        catch(Exception e) {
-       	 	logger.log(e);
+            controller.runServer();
+        } catch (Exception e) {
+            logger.log(e);
         }
     }
 
@@ -69,73 +68,70 @@ public class Controller {
     private void runServer() {
         employees = initializeEmployeesCollection();
         try {
-        	letters =  collectionSerializer.readCollection();
+            letters = collectionSerializer.readCollection();
+        } catch (Exception e) {
+            letters = collectionSerializer.readBackupCollection();
         }
-        catch(Exception e) {
-        	letters =  collectionSerializer.readBackupCollection();
-        }
-        
+
         garbageCollector = new GarbageCollector(letters);
         reminder = new Reminder(letters);
         reminder.createDeadlineTask();
-        
-        Letter.staticInitialization(serverName, bossEmail, bossName, client());
-        
-        client().receive(new IReceiver.ReceiveCallback() {
+
+        client = client();
+
+        Letter.staticInitialization(serverName, bossEmail, bossName, client, logger);
+
+        client.receive(new IReceiver.ReceiveCallback() {
             @Override
             public void onReceive(Set<ReceivedMessage> messages) {
                 System.out.println("Received messages: " + messages
                         .stream()
-                        .map(m ->  " => " + m.getDate())
+                        .map(m -> " => " + m.getDate())
                         .collect(Collectors.joining("\n"))
                 );
-                 
+
             }
 
             @Override
             public void onUpdate(ReceivedMessage message) {
-                System.out.println("New message: " + message.getMessage() + " => " + message.getDate()); 
+                System.out.println("New message: " + message.getMessage() + " => " + message.getDate());
                 if (letterTypeChecker.IsRequest(message.getSubject(),
                         message.getAttachment() != null) == LetterType.ANSWER) {
-                    
-                	try {
-                		if(letterTypeChecker.isAnswerPositive(message.getMessage())) {
-                			letterTypeChecker.getLetterById(letterTypeChecker.getLetterID(message.getMessage()),
-                											letters).setAnswer(true, message.getFrom());
-                		}
-                		else {
-                			letterTypeChecker.getLetterById(letterTypeChecker.getLetterID(message.getMessage()),
-									letters).setAnswer(false, message.getFrom());
-                		}
-                	}
-                	catch(IllegalArgumentException ise) {
-                		new Letter(message.getFrom()).sentBadAnswerLetterTypeError();
-                	}
+
+                    try {
+                        if (letterTypeChecker.isAnswerPositive(message.getMessage())) {
+                            letterTypeChecker.getLetterById(letterTypeChecker.getLetterID(message.getMessage()),
+                                    letters).setAnswer(true, message.getFrom());
+                        } else {
+                            letterTypeChecker.getLetterById(letterTypeChecker.getLetterID(message.getMessage()),
+                                    letters).setAnswer(false, message.getFrom());
+                        }
+                    } catch (IllegalArgumentException ise) {
+                        new Letter(message.getFrom()).sentBadAnswerLetterTypeError();
+                    }
 
                 } else if (letterTypeChecker.IsRequest(message.getSubject(),
-                        message.getAttachment()!= null) == LetterType.REQUEST) {
+                        message.getAttachment() != null) == LetterType.REQUEST) {
                     try {
-						letters.add(new Letter(
-								parser.parseXls(message.getAttachment()[0], employees),
-								message.getFrom(),
-								message.getMessage()
-								));
-						
+                        letters.add(new Letter(
+                                parser.parseXls(message.getAttachment()[0], employees),
+                                message.getFrom(),
+                                message.getMessage()
+                        ));
 
-					} 
-                   catch(IOException ioe) {
-                	   new Letter(message.getFrom()).badAttachmentFormat();
+
+                    } catch (IOException ioe) {
+                        new Letter(message.getFrom()).badAttachmentFormat();
+                    } catch (Exception e) {
+                        logger.log(e);
                     }
-                    catch (Exception e) {
-						logger.log(e);
-					}
                 } else {
-                	new Letter(message.getFrom()).sentBadLetterTypeError();
+                    new Letter(message.getFrom()).sentBadLetterTypeError();
                 }
-             
+
                 garbageCollector.deleteNonRelevant();
-				collectionSerializer.saveCollection(letters);
-				System.out.println("Letters objects in system: " + letters.size());
+                collectionSerializer.saveCollection(letters);
+                System.out.println("Letters objects in system: " + letters.size());
             }
 
             @Override
@@ -145,20 +141,20 @@ public class Controller {
         });
     }
 
-     private void InitializeConfig() {
-    	String[] config = null;
-    	try {
-			config = parserJSON.getServerConfiguration(configPath);
-		} catch (Exception e) {
-			logger.log(e);
-		}
-    	bossEmail        =  config[0]; 
-    	bossName         =  config[1]; 
-    	serverName       =  config[2]; 
-    	serverEmail      =  config[3]; 
-    	serverPassword   =  config[4]; 
-    	JSON_Path        =  config[5]; 
-    	DirPath 	     =  config[6]; 
+    private void InitializeConfig() {
+        String[] config = null;
+        try {
+            config = parserJSON.getServerConfiguration(configPath);
+        } catch (Exception e) {
+            logger.log(e);
+        }
+        bossEmail = config[0];
+        bossName = config[1];
+        serverName = config[2];
+        serverEmail = config[3];
+        serverPassword = config[4];
+        JSON_Path = config[5];
+        DirPath = config[6];
     }
 
     private ArrayList<Employee> initializeEmployeesCollection() {
@@ -172,12 +168,14 @@ public class Controller {
         return employees;
     }
 
-    public GmailClient client() {
+    private GmailClient client() {
         GmailClient client = GmailClient.get()
                 .loginWith(Gmail.auth(serverEmail, serverPassword))
                 .beforeLogin(() -> System.out.println("Login..."))
+                .reconnectIfError(10000, 15000)
                 .onLoginError(e -> logger.log(e))
                 .onLoginSuccess(() -> System.out.println("Success login!"));
         return client.auth();
     }
+
 }

@@ -2,298 +2,346 @@ package letterLogic;
 
 import client.core.BaseGmailClient;
 import client.core.GmailClient;
+import client.core.interfaces.ISender;
 import employee.Employee;
+import exceptionsLogger.ExceptionsLogger;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.UUID;
 
+import javax.mail.MessagingException;
 
 
 @SuppressWarnings("serial")
-public class Letter implements Serializable{
-	private static transient BaseGmailClient client;
-	private static transient LetterFormatter letterFormatter;
-	
-	private static String serverName;
+public class Letter implements Serializable {
+    private static transient BaseGmailClient client;
+    private static transient LetterFormatter letterFormatter;
+    private static transient ExceptionsLogger logger;
 
-	
-	private ArrayList<Employee> employees;
-	private String content;
-	private String senderEmail;
-	private static String bossEmail;
-	private static String bossName;
-	private int currentLevel;
-	private int[] letterState;
-	
-	private LetterState currentGeneralLetterState = LetterState.UNDEFINED;
-	private LocalDateTime[] sendTime;
-	
-	private String letterID;
-	
-	
-	public Letter(ArrayList<Employee> employees, String senderEmail,String content) {
-		
-		this.employees = employees;
-		this.senderEmail = senderEmail;
+    private static String serverName;
 
-		this.content = content;
-		this.currentLevel = getMaxLevel();
-		this.letterState = new int[employees.size()];
-		this.sendTime = new LocalDateTime[employees.size() + 1];
-		letterID = UUID.randomUUID().toString();
 
-		sent();
-	}
-	
-	public Letter(String senderEmail) {
-		this.senderEmail = senderEmail;
-	}
-	
-	public Letter() {}
-	
-	
-	public static void staticInitialization(String serverNameL, String bossEmailL, String bossNameL, GmailClient clientL) {
-		serverName = serverNameL;
-		bossEmail = bossEmailL;
-		bossName = bossNameL;
-		client = clientL;
-		letterFormatter = new LetterFormatter(serverName);
-	}
+    private ArrayList<Employee> employees;
+    private String content;
+    private String senderEmail;
+    private static String bossEmail;
+    private static String bossName;
+    private int currentLevel;
+    private int[] letterState;
 
-	public void setAnswer(boolean isAccepted, String eMail) {
-		if(currentGeneralLetterState == LetterState.ACCEPTED) {
-			handleBossAnswer(isAccepted);
-		}
-		else {
-			int index = getIndex(eMail);
-			if(index == -1) {
-				throw new IllegalArgumentException();
-			}
-			letterState[index] = (isAccepted) ? 1 : -1; 
-			if(isCurrentLevelEmpty() || checkLevelAnswers()) {
-				levelUp();
-			}
-		}
-	}
-	
-	public void badAttachmentFormat() {
-		client.send(letterFormatter.sentErrorMessage("Помилка в Excel таблиці. Зірочкою (*) було відмічено одне або більше полів з іменами людей"
-						  + " відомостей про яких немає в базі даних", senderEmail));
-	}
-	
-	public void sentBadIDError() {
-		client.send(letterFormatter.sentErrorMessage("Листа з вказаним ID не знайдено!\r\n"
-								   + "Перевірте правильність введеного в листі ID. ", senderEmail));
-	}
-	
-	public void sentBadLetterTypeError() {
-		client.send(letterFormatter.sentErrorMessage("Лист не відповідає вимогам, неможливо визначити його тип\r\n"
-							       + "Темою листа повенне бути одне з наступних слів: Запит, Відповідь.\r\n"
-							       + "Лист-запит повинен мати Excel таблицю.\r\nЛист-відповідь не повинен "
-							       + "містити прикріплень", senderEmail));
-	}
-	
-	public void sentBadAnswerLetterTypeError() {
-		client.send(letterFormatter.sentErrorMessage("Лист-відповідь не відповідає вимогам, неможливо визначити тип відповіді\r\n"
-			       + "Лист-відповідь повинен відповідати одному з наступних шаблонів:\r\n"
-			       + "ID Погоджено\r\n"
-			       + "ID Відхилено", senderEmail));
-	}
-	
-	public void sentAlreadyAcceptedError() {
-		client.send(letterFormatter.sentErrorMessage("Даний запит уже було погоджено керіником", senderEmail));
-	}
-	
-	public String getLetterID() {
-		return letterID;
-	}
-	
-	public LetterState getCurrentGeneralLetterState() {
-		return currentGeneralLetterState;
-	}
-	
-	public LocalDateTime[] getLetterSendTime() {
-		return sendTime;
-	}
-	
-	public int[] getLetterState() {
-		return letterState;
-	}
-	
-	private void handleBossAnswer(boolean isAccepted) {
-		if(isAccepted) {
-			sentBackToSenderPositiveAnswer();
-			currentGeneralLetterState = LetterState.ACCEPTED_BY_BOSS;
-		}
-		else {
-			ArrayList<Employee> sigleListForBoss = new ArrayList<>();
-			sigleListForBoss.add(new Employee(bossName, "Керівник", bossEmail, -9999));
-			sentBackToSenderNegativeAnswer(sigleListForBoss, employees);
-			currentGeneralLetterState = LetterState.REJECTED;
-		}
-	}
-	
-	
-	private int getMaxLevel() {
-		int maxLevel = 0;
-		for(Employee e : employees) {
-			if(e.getLevel() > maxLevel) {
-				maxLevel = e.getLevel();
-			}
-		}
-		return maxLevel;
-	}
-	
-	private int getMinLevel() {
-		int minLevel = getMaxLevel();
-		for(Employee e : employees) {
-			if(e.getLevel() < minLevel) {
-				minLevel = e.getLevel();
-			}
-		}
-		return minLevel;
-	}
-	
-	
-	private int getIndex(String eMail) {
-		int index = -1;
-		for(int i = 0; i < employees.size(); i++) {
-			if(employees.get(i).getEmail().equals(eMail.trim())) {
-				index = i;
-			}
-		}
-		return index;
-	}
-	
-	private boolean checkFullLevel() {
-		boolean isAccepted = true;
-		for(int i = 0; i < employees.size(); i++) {
-			if(employees.get(i).getLevel() == currentLevel && letterState[i] == -1) {
-				isAccepted = false;
-			}
-		}
-		return isAccepted;
-	}
-	
-	private boolean checkLevelAnswers() {
-		boolean answered = true;
-		for(int i = 0; i < employees.size(); i++) {
-			if(employees.get(i).getLevel() == currentLevel && letterState[i] == 0) {
-				answered = false;
-			}
-		}
-		return answered;
-	}
-	
-	private void levelUp() {
+    private LetterState currentGeneralLetterState = LetterState.UNDEFINED;
+    private LocalDateTime[] sendTime;
 
-		loop:
-		while(true) {
-			if(!isCurrentLevelEmpty() && checkLevelAnswers()) {
-				if(!checkFullLevel()) {
-					currentGeneralLetterState = LetterState.REJECTED;
-					sent();
-					break loop;
-				}
-				else if(currentLevel == getMinLevel()) {
-					currentGeneralLetterState = LetterState.ACCEPTED;
-					sent();
-					break loop;
-				}
-				else {
-					currentLevel--;
-				}
-			}
-			
-			while(isCurrentLevelEmpty()) {
-				if(currentLevel == 0) {
-					currentGeneralLetterState = LetterState.ACCEPTED;
-					sent();
-					break loop;
-				}
-				currentLevel--;
-			}
-			sent();
-			break;
-		}
-		
-		
-	}
-	
-	private boolean isCurrentLevelEmpty() {
-		boolean isEmpty = true;
-		for(Employee e : employees) {
-			if(e.getLevel() == currentLevel) {
-				isEmpty = false;
-			}
-		}
-		return isEmpty;
-	}
-	
-	public void sentToBoss() {
-		client.send(letterFormatter.messageToBoss(getWhoAcceptIt(), bossEmail, senderEmail, content,letterID));
-		sendTime[sendTime.length - 1] = LocalDateTime.now();
-	}
-	
-	public void sentToPerson(int index) {
-		client.send(letterFormatter.messageTo(employees.get(index).getEmail(), senderEmail, content, letterID));
-		sendTime[index] = LocalDateTime.now();
-	}
-	
-	private void sentToAllFromCurrentLevel() {
-		for(int i = 0; i < employees.size(); i++) {
-			if(employees.get(i).getLevel() == currentLevel) {
-				sentToPerson(i);
-			}
-		}
-	}
+    private String letterID;
 
-	private void sentBackToSenderPositiveAnswer() {
-		client.send(letterFormatter.messagePositiveAnswerToSender(senderEmail, content));
-	}
-	
-	private void sentBackToSenderNegativeAnswer(ArrayList<Employee> peopleWhoRejectIt, ArrayList<Employee> peopleWhoAcceptIt) {
-		client.send(letterFormatter.messageNegativeAnswerToSender(peopleWhoRejectIt, peopleWhoAcceptIt, senderEmail, content));
-	}
-	
-	private ArrayList<Employee> getWhoRejectIt() {
-		ArrayList<Employee> peopleWhoRejectIt = new ArrayList<>();
-		for(int i = 0; i < employees.size(); i++) {
-			if(letterState[i] == -1) {
-				peopleWhoRejectIt.add(employees.get(i));
-			}
-		}
-		return peopleWhoRejectIt;
-	}
-	
-	private ArrayList<Employee> getWhoAcceptIt() {
-		ArrayList<Employee> peopleWhoAcceptIt = new ArrayList<>();
-		for(int i = 0; i < employees.size(); i++) {
-			if(letterState[i] == 1) {
-				peopleWhoAcceptIt.add(employees.get(i));
-			}
-		}
-		return peopleWhoAcceptIt;
-	}
-	
-	private void sent() {
-		switch(currentGeneralLetterState) {
-			case UNDEFINED:
-				sentToAllFromCurrentLevel();
-				break;
-			case ACCEPTED:
-				sentToBoss();
-				break;
-			case REJECTED:
-				ArrayList<Employee> peopleWhoRejectIt = getWhoRejectIt();
-				ArrayList<Employee> peopleWhoAcceptIt = getWhoAcceptIt();
-				sentBackToSenderNegativeAnswer(peopleWhoRejectIt, peopleWhoAcceptIt);
-				break;
-			case ACCEPTED_BY_BOSS:
-				sentAlreadyAcceptedError();
-				break;
-		}
-	}
+
+    public Letter(ArrayList<Employee> employees, String senderEmail, String content) {
+
+        this.employees = employees;
+        this.senderEmail = senderEmail;
+
+        this.content = content;
+        this.currentLevel = getMaxLevel();
+        this.letterState = new int[employees.size()];
+        this.sendTime = new LocalDateTime[employees.size() + 1];
+        letterID = UUID.randomUUID().toString();
+
+        sent();
+    }
+
+    public Letter(String senderEmail) {
+        this.senderEmail = senderEmail;
+    }
+
+    public Letter() {
+    }
+
+
+    public static void staticInitialization(String serverNameL, String bossEmailL, String bossNameL, GmailClient clientL, ExceptionsLogger loggerL) {
+        serverName = serverNameL;
+        bossEmail = bossEmailL;
+        bossName = bossNameL;
+        client = clientL;
+        letterFormatter = new LetterFormatter(serverName);
+        logger = loggerL;
+    }
+
+    public void setAnswer(boolean isAccepted, String eMail) {
+        if (currentGeneralLetterState == LetterState.ACCEPTED) {
+            handleBossAnswer(isAccepted);
+        } else {
+            int index = getIndex(eMail);
+            if (index == -1) {
+                throw new IllegalArgumentException();
+            }
+            letterState[index] = (isAccepted) ? 1 : -1;
+            if (isCurrentLevelEmpty() || checkLevelAnswers()) {
+                levelUp();
+            }
+        }
+    }
+
+    public void badAttachmentFormat() {
+
+			client.send(letterFormatter.sentErrorMessage("РџРѕРјРёР»РєР° РІ Excel С‚Р°Р±Р»РёС†С–. Р—С–СЂРѕС‡РєРѕСЋ (*) Р±СѓР»Рѕ РІС–РґРјС–С‡РµРЅРѕ РѕРґРЅРµ Р°Р±Рѕ Р±С–Р»СЊС€Рµ РїРѕР»С–РІ Р· С–РјРµРЅР°РјРё Р»СЋРґРµР№"
+			        + " РІС–РґРѕРјРѕСЃС‚РµР№ РїСЂРѕ СЏРєРёС… РЅРµРјР°С” РІ Р±Р°Р·С– РґР°РЅРёС…", senderEmail), new ISender.SendCallback() {
+	            public void onError(MessagingException e) {
+	            	logger.log(e);
+	            }
+	            public void onSuccess() {}
+			});
+    }
+
+    public void sentBadIDError() {
+        client.send(letterFormatter.sentErrorMessage("Р›РёСЃС‚Р° Р· РІРєР°Р·Р°РЅРёРј ID РЅРµ Р·РЅР°Р№РґРµРЅРѕ!\r\n"
+                + "РџРµСЂРµРІС–СЂС‚Рµ РїСЂР°РІРёР»СЊРЅС–СЃС‚СЊ РІРІРµРґРµРЅРѕРіРѕ РІ Р»РёСЃС‚С– ID. ", senderEmail), new ISender.SendCallback() {
+            public void onError(MessagingException e) {
+            	logger.log(e);
+            }
+            public void onSuccess() {}
+		});
+    }
+
+    public void sentBadLetterTypeError() {
+        client.send(letterFormatter.sentErrorMessage("Р›РёСЃС‚ РЅРµ РІС–РґРїРѕРІС–РґР°С” РІРёРјРѕРіР°Рј, РЅРµРјРѕР¶Р»РёРІРѕ РІРёР·РЅР°С‡РёС‚Рё Р№РѕРіРѕ С‚РёРї\r\n"
+                + "РўРµРјРѕСЋ Р»РёСЃС‚Р° РїРѕРІРµРЅРЅРµ Р±СѓС‚Рё РѕРґРЅРµ Р· РЅР°СЃС‚СѓРїРЅРёС… СЃР»С–РІ: Р—Р°РїРёС‚, Р’С–РґРїРѕРІС–РґСЊ.\r\n"
+                + "Р›РёСЃС‚-Р·Р°РїРёС‚ РїРѕРІРёРЅРµРЅ РјР°С‚Рё Excel С‚Р°Р±Р»РёС†СЋ.\r\nР›РёСЃС‚-РІС–РґРїРѕРІС–РґСЊ РЅРµ РїРѕРІРёРЅРµРЅ "
+                + "РјС–СЃС‚РёС‚Рё РїСЂРёРєСЂС–РїР»РµРЅСЊ", senderEmail), new ISender.SendCallback() {
+            public void onError(MessagingException e) {
+            	logger.log(e);
+            }
+            public void onSuccess() {}
+		});
+    }
+
+    public void sentBadAnswerLetterTypeError() {
+        client.send(letterFormatter.sentErrorMessage("Р›РёСЃС‚-РІС–РґРїРѕРІС–РґСЊ РЅРµ РІС–РґРїРѕРІС–РґР°С” РІРёРјРѕРіР°Рј, РЅРµРјРѕР¶Р»РёРІРѕ РІРёР·РЅР°С‡РёС‚Рё С‚РёРї РІС–РґРїРѕРІС–РґС–\r\n"
+                + "Р›РёСЃС‚-РІС–РґРїРѕРІС–РґСЊ РїРѕРІРёРЅРµРЅ РІС–РґРїРѕРІС–РґР°С‚Рё РѕРґРЅРѕРјСѓ Р· РЅР°СЃС‚СѓРїРЅРёС… С€Р°Р±Р»РѕРЅС–РІ:\r\n"
+                + "ID РџРѕРіРѕРґР¶РµРЅРѕ\r\n"
+                + "ID Р’С–РґС…РёР»РµРЅРѕ", senderEmail), new ISender.SendCallback() {
+            public void onError(MessagingException e) {
+            	logger.log(e);
+            }
+            public void onSuccess() {}
+		});
+    }
+
+    public void sentAlreadyAcceptedError() {
+        client.send(letterFormatter.sentErrorMessage("Р”Р°РЅРёР№ Р·Р°РїРёС‚ СѓР¶Рµ Р±СѓР»Рѕ РїРѕРіРѕРґР¶РµРЅРѕ РєРµСЂС–РЅРёРєРѕРј", senderEmail), new ISender.SendCallback() {
+            public void onError(MessagingException e) {
+            	logger.log(e);
+            }
+            public void onSuccess() {}
+		});
+    }
+
+    public String getLetterID() {
+        return letterID;
+    }
+
+    public LetterState getCurrentGeneralLetterState() {
+        return currentGeneralLetterState;
+    }
+
+    public LocalDateTime[] getLetterSendTime() {
+        return sendTime;
+    }
+
+    public int[] getLetterState() {
+        return letterState;
+    }
+
+    private void handleBossAnswer(boolean isAccepted) {
+        if (isAccepted) {
+            sentBackToSenderPositiveAnswer();
+            currentGeneralLetterState = LetterState.ACCEPTED_BY_BOSS;
+        } else {
+            ArrayList<Employee> sigleListForBoss = new ArrayList<>();
+            sigleListForBoss.add(new Employee(bossName, "РљРµСЂС–РІРЅРёРє", bossEmail, -9999));
+            sentBackToSenderNegativeAnswer(sigleListForBoss, employees);
+            currentGeneralLetterState = LetterState.REJECTED;
+        }
+    }
+
+
+    private int getMaxLevel() {
+        int maxLevel = 0;
+        for (Employee e : employees) {
+            if (e.getLevel() > maxLevel) {
+                maxLevel = e.getLevel();
+            }
+        }
+        return maxLevel;
+    }
+
+    private int getMinLevel() {
+        int minLevel = getMaxLevel();
+        for (Employee e : employees) {
+            if (e.getLevel() < minLevel) {
+                minLevel = e.getLevel();
+            }
+        }
+        return minLevel;
+    }
+
+
+    private int getIndex(String eMail) {
+        int index = -1;
+        for (int i = 0; i < employees.size(); i++) {
+            if (employees.get(i).getEmail().equals(eMail.trim())) {
+                index = i;
+            }
+        }
+        return index;
+    }
+
+    private boolean checkFullLevel() {
+        boolean isAccepted = true;
+        for (int i = 0; i < employees.size(); i++) {
+            if (employees.get(i).getLevel() == currentLevel && letterState[i] == -1) {
+                isAccepted = false;
+            }
+        }
+        return isAccepted;
+    }
+
+    private boolean checkLevelAnswers() {
+        boolean answered = true;
+        for (int i = 0; i < employees.size(); i++) {
+            if (employees.get(i).getLevel() == currentLevel && letterState[i] == 0) {
+                answered = false;
+            }
+        }
+        return answered;
+    }
+
+    private void levelUp() {
+
+        loop:
+        while (true) {
+            if (!isCurrentLevelEmpty() && checkLevelAnswers()) {
+                if (!checkFullLevel()) {
+                    currentGeneralLetterState = LetterState.REJECTED;
+                    sent();
+                    break loop;
+                } else if (currentLevel == getMinLevel()) {
+                    currentGeneralLetterState = LetterState.ACCEPTED;
+                    sent();
+                    break loop;
+                } else {
+                    currentLevel--;
+                }
+            }
+
+            while (isCurrentLevelEmpty()) {
+                if (currentLevel == 0) {
+                    currentGeneralLetterState = LetterState.ACCEPTED;
+                    sent();
+                    break loop;
+                }
+                currentLevel--;
+            }
+            sent();
+            break;
+        }
+
+
+    }
+
+    private boolean isCurrentLevelEmpty() {
+        boolean isEmpty = true;
+        for (Employee e : employees) {
+            if (e.getLevel() == currentLevel) {
+                isEmpty = false;
+            }
+        }
+        return isEmpty;
+    }
+
+    public void sentToBoss() {
+        client.send(letterFormatter.messageToBoss(getWhoAcceptIt(), bossEmail, senderEmail, content, letterID), new ISender.SendCallback() {
+            public void onError(MessagingException e) {
+            	logger.log(e);
+            }
+            public void onSuccess() {}
+		});
+        sendTime[sendTime.length - 1] = LocalDateTime.now();
+    }
+
+    public void sentToPerson(int index) {
+        client.send(letterFormatter.messageTo(employees.get(index).getEmail(), senderEmail, content, letterID), new ISender.SendCallback() {
+            public void onError(MessagingException e) {
+            	logger.log(e);
+            }
+            public void onSuccess() {}
+		});
+        sendTime[index] = LocalDateTime.now();
+    }
+
+    private void sentToAllFromCurrentLevel() {
+        for (int i = 0; i < employees.size(); i++) {
+            if (employees.get(i).getLevel() == currentLevel) {
+                sentToPerson(i);
+            }
+        }
+    }
+
+    private void sentBackToSenderPositiveAnswer() {
+        client.send(letterFormatter.messagePositiveAnswerToSender(senderEmail, content), new ISender.SendCallback() {
+            public void onError(MessagingException e) {
+            	logger.log(e);
+            }
+            public void onSuccess() {}
+		});
+    }
+
+    private void sentBackToSenderNegativeAnswer(ArrayList<Employee> peopleWhoRejectIt, ArrayList<Employee> peopleWhoAcceptIt) {
+        client.send(letterFormatter.messageNegativeAnswerToSender(peopleWhoRejectIt, peopleWhoAcceptIt, senderEmail, content), new ISender.SendCallback() {
+            public void onError(MessagingException e) {
+            	logger.log(e);
+            }
+            public void onSuccess() {}
+		});
+    }
+
+    private ArrayList<Employee> getWhoRejectIt() {
+        ArrayList<Employee> peopleWhoRejectIt = new ArrayList<>();
+        for (int i = 0; i < employees.size(); i++) {
+            if (letterState[i] == -1) {
+                peopleWhoRejectIt.add(employees.get(i));
+            }
+        }
+        return peopleWhoRejectIt;
+    }
+
+    private ArrayList<Employee> getWhoAcceptIt() {
+        ArrayList<Employee> peopleWhoAcceptIt = new ArrayList<>();
+        for (int i = 0; i < employees.size(); i++) {
+            if (letterState[i] == 1) {
+                peopleWhoAcceptIt.add(employees.get(i));
+            }
+        }
+        return peopleWhoAcceptIt;
+    }
+
+    private void sent() {
+        switch (currentGeneralLetterState) {
+            case UNDEFINED:
+                sentToAllFromCurrentLevel();
+                break;
+            case ACCEPTED:
+                sentToBoss();
+                break;
+            case REJECTED:
+                ArrayList<Employee> peopleWhoRejectIt = getWhoRejectIt();
+                ArrayList<Employee> peopleWhoAcceptIt = getWhoAcceptIt();
+                sentBackToSenderNegativeAnswer(peopleWhoRejectIt, peopleWhoAcceptIt);
+                break;
+            case ACCEPTED_BY_BOSS:
+                sentAlreadyAcceptedError();
+                break;
+        }
+    }
 }
