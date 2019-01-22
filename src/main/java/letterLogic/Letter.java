@@ -6,12 +6,11 @@ import client.core.interfaces.ISender;
 import employee.Employee;
 import exceptionsLogger.ExceptionsLogger;
 
+import javax.mail.MessagingException;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.UUID;
-
-import javax.mail.MessagingException;
 
 
 @SuppressWarnings("serial")
@@ -85,23 +84,15 @@ public class Letter implements Serializable {
 
     public void badAttachmentFormat() {
 
-			client.send(letterFormatter.sentErrorMessage("Помилка в Excel таблиці. Зірочкою (*) було відмічено одне або більше полів з іменами людей"
-			        + " відомостей про яких немає в базі даних", senderEmail), new ISender.SendCallback() {
-	            public void onError(MessagingException e) {
-	            	logger.log(e);
-	            }
-	            public void onSuccess() {}
-			});
-    }
-
-    public void sentBadIDError() {
-        client.send(letterFormatter.sentErrorMessage("Листа з вказаним ID не знайдено!\r\n"
-                + "Перевірте правильність введеного в листі ID. ", senderEmail), new ISender.SendCallback() {
+        client.send(letterFormatter.sentErrorMessage("Помилка в Excel таблиці. Зірочкою (*) було відмічено одне або більше полів з іменами людей"
+                + " відомостей про яких немає в базі даних", senderEmail), new ISender.SendCallback() {
             public void onError(MessagingException e) {
-            	logger.log(e);
+                logger.log(e);
             }
-            public void onSuccess() {}
-		});
+
+            public void onSuccess() {
+            }
+        });
     }
 
     public void sentBadLetterTypeError() {
@@ -110,31 +101,38 @@ public class Letter implements Serializable {
                 + "Лист-запит повинен мати Excel таблицю.\r\nЛист-відповідь не повинен "
                 + "містити прикріплень", senderEmail), new ISender.SendCallback() {
             public void onError(MessagingException e) {
-            	logger.log(e);
+                logger.log(e);
             }
-            public void onSuccess() {}
-		});
+
+            public void onSuccess() {
+            }
+        });
     }
 
     public void sentBadAnswerLetterTypeError() {
         client.send(letterFormatter.sentErrorMessage("Лист-відповідь не відповідає вимогам, неможливо визначити тип відповіді\r\n"
                 + "Лист-відповідь повинен відповідати одному з наступних шаблонів:\r\n"
                 + "ID Погоджено\r\n"
-                + "ID Відхилено", senderEmail), new ISender.SendCallback() {
+                + "ID Відхилено\r\n\r\n" +
+                "Також причиною виникнення помилки може бути неправильно введений ID", senderEmail), new ISender.SendCallback() {
             public void onError(MessagingException e) {
-            	logger.log(e);
+                logger.log(e);
             }
-            public void onSuccess() {}
-		});
+
+            public void onSuccess() {
+            }
+        });
     }
 
     public void sentAlreadyAcceptedError() {
         client.send(letterFormatter.sentErrorMessage("Даний запит уже було погоджено керіником", senderEmail), new ISender.SendCallback() {
             public void onError(MessagingException e) {
-            	logger.log(e);
+                logger.log(e);
             }
-            public void onSuccess() {}
-		});
+
+            public void onSuccess() {
+            }
+        });
     }
 
     public String getLetterID() {
@@ -263,20 +261,24 @@ public class Letter implements Serializable {
     public void sentToBoss() {
         client.send(letterFormatter.messageToBoss(getWhoAcceptIt(), bossEmail, senderEmail, content, letterID), new ISender.SendCallback() {
             public void onError(MessagingException e) {
-            	logger.log(e);
+                logger.log(e);
             }
-            public void onSuccess() {}
-		});
+
+            public void onSuccess() {
+            }
+        });
         sendTime[sendTime.length - 1] = LocalDateTime.now();
     }
 
     public void sentToPerson(int index) {
         client.send(letterFormatter.messageTo(employees.get(index).getEmail(), senderEmail, content, letterID), new ISender.SendCallback() {
             public void onError(MessagingException e) {
-            	logger.log(e);
+                logger.log(e);
             }
-            public void onSuccess() {}
-		});
+
+            public void onSuccess() {
+            }
+        });
         sendTime[index] = LocalDateTime.now();
     }
 
@@ -291,19 +293,23 @@ public class Letter implements Serializable {
     private void sentBackToSenderPositiveAnswer() {
         client.send(letterFormatter.messagePositiveAnswerToSender(senderEmail, content), new ISender.SendCallback() {
             public void onError(MessagingException e) {
-            	logger.log(e);
+                logger.log(e);
             }
-            public void onSuccess() {}
-		});
+
+            public void onSuccess() {
+            }
+        });
     }
 
     private void sentBackToSenderNegativeAnswer(ArrayList<Employee> peopleWhoRejectIt, ArrayList<Employee> peopleWhoAcceptIt) {
         client.send(letterFormatter.messageNegativeAnswerToSender(peopleWhoRejectIt, peopleWhoAcceptIt, senderEmail, content), new ISender.SendCallback() {
             public void onError(MessagingException e) {
-            	logger.log(e);
+                logger.log(e);
             }
-            public void onSuccess() {}
-		});
+
+            public void onSuccess() {
+            }
+        });
     }
 
     private ArrayList<Employee> getWhoRejectIt() {

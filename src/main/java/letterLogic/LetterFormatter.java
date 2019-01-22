@@ -1,9 +1,9 @@
 package letterLogic;
 
-import java.util.ArrayList;
-
 import client.core.common.SendedMessage;
 import employee.Employee;
+
+import java.util.ArrayList;
 
 public class LetterFormatter {
 
@@ -69,8 +69,7 @@ public class LetterFormatter {
     }
 
     public SendedMessage sentErrorMessage(String errMessage, String senderEmail) {
-        return new SendedMessage("Помилка відправлення!!!", "Лист відповідь на запит " + senderEmail
-                + " не було відправлено\r\n" + errMessage)
+        return new SendedMessage("Помилка відправлення!!!", "Лист не було відправлено\r\n" + errMessage)
                 .from(serverName)
                 .to(senderEmail);
     }
