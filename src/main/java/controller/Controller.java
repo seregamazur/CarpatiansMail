@@ -6,21 +6,16 @@ import client.core.common.ReceivedMessage;
 import client.core.interfaces.IReceiver;
 import employee.Employee;
 import exceptionsLogger.ExceptionsLogger;
-import letterLogic.CollectionSerializer;
-import letterLogic.GarbageCollector;
-import letterLogic.Letter;
-import letterLogic.LetterType;
-import letterLogic.Reminder;
+import letterLogic.*;
 import parser.LetterTypeChecker;
 import parser.Parser;
 import parser.ParserJson;
 
+import javax.mail.MessagingException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import javax.mail.MessagingException;
 
 public class Controller {
 
@@ -66,12 +61,13 @@ public class Controller {
 
 
     private void runServer() {
+
         employees = initializeEmployeesCollection();
-        try {
-            letters = collectionSerializer.readCollection();
-        } catch (Exception e) {
-            letters = collectionSerializer.readBackupCollection();
-        }
+
+
+        letters = collectionSerializer.readCollection();
+
+        System.out.println("Letters objects in system: " + letters.size());
 
         garbageCollector = new GarbageCollector(letters);
         reminder = new Reminder(letters);
@@ -95,6 +91,7 @@ public class Controller {
             @Override
             public void onUpdate(ReceivedMessage message) {
                 System.out.println("New message: " + message.getMessage() + " => " + message.getDate());
+                System.out.println("Letters objects in system: " + letters.size());
                 if (letterTypeChecker.IsRequest(message.getSubject(),
                         message.getAttachment() != null) == LetterType.ANSWER) {
 

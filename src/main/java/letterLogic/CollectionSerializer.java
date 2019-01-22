@@ -1,14 +1,9 @@
 package letterLogic;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.util.ArrayList;
-
 import exceptionsLogger.ExceptionsLogger;
+
+import java.io.*;
+import java.util.ArrayList;
 
 public class CollectionSerializer {
 
@@ -39,6 +34,7 @@ public class CollectionSerializer {
                     oos.flush();
                     oos.close();
                 } catch (IOException e) {
+                    logger.log(e);
                 }
             }
             if (oosb != null) {
@@ -46,26 +42,32 @@ public class CollectionSerializer {
                     oosb.flush();
                     oosb.close();
                 } catch (IOException e) {
+                    logger.log(e);
                 }
             }
         }
-
-
     }
+
 
     @SuppressWarnings("unchecked")
     public ArrayList<Letter> readCollection() {
         ArrayList<Letter> letters = new ArrayList<>();
 
-        File file = new File(fileName);
+        File file = new File(fileName + ".dat");
+        File fileBackup = new File(fileName + "Backup.dat");
 
-        if (file.exists()) {
+        if (file.exists() || fileBackup.exists()) {
             ObjectInputStream ois = null;
             try {
                 ois = new ObjectInputStream(new FileInputStream(fileName + ".dat"));
                 letters = ((ArrayList<Letter>) ois.readObject());
             } catch (Exception ex) {
-                logger.log(ex);
+                try {
+                    ois = new ObjectInputStream(new FileInputStream(fileName + "Backup.dat"));
+                    letters = ((ArrayList<Letter>) ois.readObject());
+                } catch (Exception e) {
+                    logger.log(e);
+                }
             } finally {
                 if (ois != null) {
                     try {
@@ -82,7 +84,7 @@ public class CollectionSerializer {
     public ArrayList<Letter> readBackupCollection() {
         ArrayList<Letter> letters = new ArrayList<>();
 
-        File file = new File(fileName);
+        File file = new File(fileName + "Backup.dat");
 
         if (file.exists()) {
             ObjectInputStream ois = null;
